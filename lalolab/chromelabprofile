@@ -1,0 +1,1 @@
+chromium-browser --js-flags="--prof --trace-opt  --trace-bailout --trace-deopt" --no-sandbox --allow-file-access-from-files index.html > log.txt

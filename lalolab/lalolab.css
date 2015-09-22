@@ -1,0 +1,385 @@
+body {
+	font-family: Verdana, Geneva, sans-serif;
+	margin-left: 30px;
+	margin-right: 50px;
+	margin-top: 100px; /* for header */
+	margin-bottom: 0;
+	text-align: justify;
+	/*width: 1000px;*/
+	height: calc(100vh - 100px);
+	font-size: 90%;
+}
+.container {
+	position: relative;
+	left: 0px;
+	top: 0px;
+	text-align: left ;
+}
+
+#header {
+	margin-left: 10px;	
+	margin-right: 10px;
+	font-size: 100%;	
+	position: fixed;
+	top: 0px;
+	left: 0px;
+	width: calc(100% - 20px);
+	z-index: 40;
+	background-color: white;
+}
+
+#output {
+	font-family: monospace; 
+	font-size: 100%;
+	background-color:  rgba(0,200, 240,0.2);
+	border: 4px solid #0080B0;	
+	border-radius: 5px;	
+	color: black; 
+	width: 53%; 
+	height: 70%;/*490px;*/
+	overflow: auto;
+	margin-top: 5px;
+	padding: 5px;
+	resize: vertical;
+}
+
+#outputplots {
+	font-family: sans-serif; 
+	font-size: 80%;
+	background-color: white;
+	color: black; 
+	margin-top: 10px;		
+}
+#plotlegend {
+	font-family: sans-serif; 
+	font-size: 80%;
+	background-color: white;
+	color: black; 
+	position: absolute;
+	left: 550px;
+	top: calc(10px - 1em);	
+}
+#legendtxt {
+	font-family: sans-serif; 
+	font-size: 100%;
+	background-color: white;
+	color: black; 
+	position: absolute;
+	left: 610px;
+	top: 10px;	
+	width: 300px;
+}
+#plottitle {
+	margin-top:20px;
+}
+#helpview {
+	font-family: sans-serif; 	
+	background-color: white;
+	color: black; 
+	position: absolute;
+	top: 0px;
+	left: 56%;
+	width: 32%;
+	height: 60%; /*370px;*/
+	overflow: auto;
+}
+.helpsectiontitle {
+	font-weight: bold;	
+	margin-top: 5px; 
+	margin-bottom: 5px; 	
+}
+.helpsection {
+	max-height: 0px;
+	opacity: 0;
+	visibility: hidden;
+	transition: max-height 0.3s, opacity 0.2s;
+}
+.helptogglebtn {
+	color:white;
+	background-color:  #00A0D0; 
+	border: 2px solid  #00A0D0; 
+	border-radius: 4px;	
+}
+#helpcmds {
+	font-family: sans-serif; 	
+	background-color: white;
+	color: black; 
+	font-size: 75%;
+	position: absolute;
+	top: 40px;
+	left: 89%;
+	width: 160px;
+	height: 53%;/*330px;*/
+	overflow: auto;
+}
+a.helpcmd {
+	display: block;
+	margin-top: 0;
+	margin-bottom: -1em;
+}
+a.helpcmd:hover {
+	font-size: 140%;	
+}
+
+#cmdline {
+	padding: 0.5em;
+	width: 51%;
+	border: 8px solid #0080B0;
+	border-radius: 5px;
+	border-right: 45px solid  #0080B0;
+}
+
+#blockcommands {
+	position: absolute;
+	left: 56%;
+	top: 62%; /*400px;*/
+	width: 48%;
+}
+#cmdblock {
+	padding: 0.5em;
+	width: 82%;
+	height: 180px;
+	border: 8px solid #0080B0;
+	border-radius: 5px;
+	resize: vertical;
+}
+/*
+#codehighlight {
+	position: absolute; 
+	top: 0px;
+	left: 0px;	
+	z-index: 3;
+	padding: 0.5em;
+	width: 82%;
+	height: 180px;
+	border: 8px solid #0080B0;
+	border-radius: 5px;	
+	font-family: monospace;
+	overflow-y: auto;
+}*/
+#btnrunblock {
+	height: 180px; 
+	position: absolute;
+	top: 0;
+	left: 83%;
+	width: 12%;
+	font-weight: bold;
+}
+#btnparseblock {
+	height: 40px;
+	width: 45%;
+	position: absolute;
+	top: 185;
+	left: 0;
+	font-weight: normal;
+}
+#btnparseblockhtml {
+	height: 40px;
+	width: 45%;
+	position: absolute;
+	top: 185;
+	left: 50%;
+	font-weight: normal;
+}
+
+.hiddenfilebtn {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 1px;
+	opacity: 0;
+	z-index: 0;
+}
+
+.topbuttons {
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 90%;
+	color: black;
+	background-color:  #00A0D0; 
+	border: 8px solid  #00A0D0; 
+	border-radius: 5px;
+	z-index: 42;
+}
+.topbuttonsdiv {
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 90%;
+	color: black;
+	background-color:  #00A0D0; 
+	border: 8px solid  #00A0D0; 
+	border-radius: 5px;
+	z-index: 42;
+	height: 20px;
+}
+
+.topbuttons:hover {
+	background-color: rgba(0,200,100,0.5);
+	border: 8px solid  rgba(0,200,100,0.5);
+}
+.topbuttonsdiv:hover {
+	background-color: rgba(0,200,100,0.5);
+	border: 8px solid  rgba(0,200,100,0.5);
+}
+
+
+.inputlabel{
+	font-style: italic;
+	font-size: 80%;
+}
+.outputcmd {
+	font-style: italic;
+}
+.outputres {
+	padding-left: 2em;
+}
+.errormsg {
+	padding-left: 2em;
+	color: red;
+	font-style: italic;
+}
+.MathJax_Display {
+	font-size: 90%;
+}
+.plots {
+	width: 500px;
+	height: 500px;
+	border: 1px solid black;
+	margin-top: 10px;	
+}
+.imageplots {
+/*	width: 500px;*/
+/*	height: 500px;*/
+	border: 1px solid black;
+	margin-top: 10px;
+}
+
+.booktitle {
+	font-size: 200%;
+	/*text-align: center;*/
+	color: #00A0D0; 
+	font-weight: normal;
+/*	letter-spacing: .3em;*/
+	margin: 0;
+	padding-left: .3em;
+	border-bottom-style: solid;
+	border-bottom-width: 5pt;
+	border-bottom-color: #0080B0;
+	/*border-top-style: solid;
+	border-top-width: 1pt;
+	border-top-color: #0080B0;*/
+}
+a.booktitle {
+	color: #00A0D0; 
+	text-decoration: none;	
+}
+a.booktitle:visited {
+	color: #00A0D0; 
+	text-decoration: none;	
+}
+a.booktitle:hover {
+	color: #00A0D0; 
+	text-decoration: none;	
+}
+
+#lalolib {
+	position: absolute;
+	top: 8px;
+	width: 98%;
+	font-size: 90%;
+	text-align: right;
+	color: #00A0D0; 
+	font-weight: normal;
+	padding-left: .3em;
+}
+
+.header-hr {
+	position: relative;
+	top: 1px;
+	left: 0px;
+	size: 1px;
+	width: 100%;
+}
+.headerbtns {
+/*	margin-top: 15px;*/
+	font-size: 90%;
+}
+
+.jaxstring {
+	visibility: hidden; 
+	position: absolute; 
+	top: 0px;
+	left: 0px;
+	pointerEvents: none;
+	z-index: 10;
+}
+
+a {
+	color: #0080B0;	
+}
+
+/* h2, h3 used for help view */
+h1 {
+	font-size: 200%;
+	/*text-align: center;*/
+	color: #00A0D0; 
+	font-weight: normal;
+/*	letter-spacing: .3em;*/
+	padding-left: .3em;
+	border-bottom-style: solid;
+	border-bottom-width: 3pt;
+	border-bottom-color: #0080B0;
+	/*border-top-style: solid;
+	border-top-width: 1pt;
+	border-top-color: #0080B0;*/
+}
+
+h2 {
+	color: #FFFFFF; /* 000000 */
+	background-color: #0080B0;
+	background: linear-gradient(to right,#0080B0,#0080B0,white) ;
+	padding-top: 3pt;
+	padding-bottom: 3pt;
+	padding-left: 1em;
+	font-weight: bold;
+	font-size: 110%;
+	border-radius: 4px;
+}
+h3 {
+	margin-left: 2em;
+}
+.helpcontent {
+	font-size: 80%;
+}
+
+.proof {
+	font-size: 80%;
+	visibility: hidden;
+	position: absolute;
+}
+.solution {
+	font-size: 80%;
+	visibility: hidden;
+}
+
+.theorem {
+	margin-left: 50px;
+	margin-right: 100px;
+	margin-top: 2em;
+	margin-bottom: 2em;
+	padding: 1em;
+	background-color: rgba(200,200,200,0.3);
+	font-style: italic;
+}
+
+#footer {
+	margin-top: 50px; 	
+	font-size: 70%;
+}
+.footer-rule {
+	margin-left: -15px;
+	margin-right: -15px;
+	width: calc(100% + 45px);
+	height: 1px;
+	color: black;
+	
+}
+

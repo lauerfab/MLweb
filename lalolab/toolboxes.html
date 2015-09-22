@@ -1,0 +1,107 @@
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Extending LALOLab</title>
+	<script type="application/x-javascript" src="lalolib.js"> </script>
+	<style>
+	body {
+		font-family: Verdana, Geneva, sans-serif;
+		margin-left: 30px;
+		margin-right: 50px;
+		text-align: justify;
+	}
+	
+	h1 {
+		font-size: 200%;
+		color: #00A0D0; 
+		font-weight: normal;
+		padding-left: .3em;
+		border-bottom-style: solid;
+		border-bottom-width: 5pt;
+		border-bottom-color: #0080B0;
+	}
+
+	h2 {
+		color: #FFFFFF; /* 000000 */
+		background-color: #0080B0;
+		background: linear-gradient(to right,#0080B0,#0080B0,white) ;
+		margin-top: 2em;
+		padding-top: 3pt;
+		padding-bottom: 3pt;
+		padding-left: 1em;
+		font-weight: bold;
+		font-size: 110%;
+		border-radius: 4px;
+	}	
+	</style>
+</head>
+
+<body>
+
+<h1>Extending LALOLib/LALOLab with a new toolbox</h1>
+
+This page explains how to extend  <a href="index.html">LALOLab</a> with a new toolbox.
+<ol>
+<li><a href="#create">Create a toolbox</a></li>
+<li><a href="#help">Create a help file for the toolbox</a></li>
+<li><a href="#load">Load the toolbox in LALOLab</a></li>
+<li><a href="#submit">Include the toolbox in the standard LALOLab distribution</a></li>
+</ol>
+
+<h2 id="create">Create a toolbox</h2>
+
+<p>
+A toolbox can be simply created by writing a set of functions in a new file 
+<pre>
+toolboxes/toolbox.js
+</pre>
+These functions can be written either fully in standard javascript or using LALOLab functions, but should always follow the <a href="lalolibefficient.html">guidelines for writing efficient code</a>.
+</p>
+<p>
+The toolbox file should be located in the <i>lalolab/toolboxes/</i> folder of LALOLab. It can also be split into multiple *.js files.
+</p>
+
+
+<h2 id="help">Create a help file for the toolbox</h2>
+
+A help file for a toolbox can be created in the <i>help/</i> subfolder of LALOLab as, e.g., 
+<pre>
+lalolab/help/helptoolbox.js
+</pre>
+Such a help file should include one line for each documented function. For a function <i>"func"</i> of the toolbox <i>"Great Toolbox"</i>, this line is encoded as 
+<pre>
+HELPcontent["func"] = ["GreatToolbox", "Function full name/title","y = func( x )\n y = func( x, optarg )","Function description...",
+ "// some example\n y = func( 2.5, 3 )"];
+</pre>
+The first field "GreatToolbox" is the name of the toolbox as it will appear in LALOLab (except that an upper case letter will be replaced by a space and a lower case letter).<br>
+The third field should include the different expected syntaxes of the function calls, separated by "\n".<br>
+The fourth field is the main text description which can include html tags like &lt;br&gt;.<br>
+The last field is an example with lines of code separated by "\n". Multiple examples can be simply provided by using an Array of strings instead of a single string: 
+<pre>
+HELPcontent["func"] = [..., [ "// some example\n y = func( 2.5, 3 )", "// another example\n y = func( -1 )" ] ];
+</pre>
+
+
+<h2 id="load">Load the toolbox in LALOLab</h2>
+
+If the files are located in the correct folders as detailed above, then rebuilding LALOLab by running
+<pre>
+make
+</pre>
+in the <i>lalolab/</i> folder should provide access to the toolbox and its help on the next LALOLab reboot.
+
+<h2 id="submit">Include the toolbox in the standard LALOLab distribution </h2>
+
+<p>If the toolbox is well-written, numerically efficient and provides interesting new features it might be worth making it a part of the standard LALOLab distribution. </p>
+<p>
+To do so, include all the source code of the toolbox in a single .js file, for instance with
+<pre>
+cat file1.js file2.js ... > toolbox.js
+</pre>
+and submit this file with the help file to fabien.lauer (<i>at</i>) loria.fr
+</p>
+
+<br><br><br><br><br><br><br><br>
+</body>
+</html>
+

@@ -1,0 +1,899 @@
+<html>
+ <head>
+	 <meta charset="UTF-8">
+	<link rel="stylesheet" type="text/css" href="lalolab.css" >
+	<link rel="icon" type="image/x-icon" href="favicon.ico" />
+	<title>LALOLab: the Linear ALgebra Online Lab</title>
+	<meta name="description" content="A web application for machine learning and scientific computing (linear algebra, statistics, optimization)." />
+   <script type="application/x-javascript" src="lalohelp.js"> </script>            
+
+  <script type="text/x-mathjax-config">   
+	MathJax.Hub.Config(
+		 {
+		  tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]} ,
+		  TeX: {
+			Macros: {
+			  R: "\\mathbb{R}",
+			  N: "\\mathbb{N}",
+			  X: "\\mathcal{X}",
+			  Y: "\\mathcal{Y}",
+			  E: "\\mathbb{E}",		  		
+			  H: "\\mathcal{H}",  		  
+			  F: "\\mathcal{F}",  		  		  
+			  g: ["\\boldsymbol{#1}",1],
+			  I: ["\\boldsymbol{1}_{#1}",1],
+			  inner: ["\\left\\langle #1, #2 \\right\\rangle",2],
+			  sign: "\\mbox{sign}",
+			  VC: "\\mbox{VC-dim}",
+			  drond: ["\\frac{\\partial #1}{\\partial #2}", 2]
+			}
+		  }
+		}
+	);
+	</script>
+	<script type="text/javascript" src="../mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</head>
+<body onload="bodyOnLoad();">
+
+<div id="header">
+<p class="booktitle">
+LALO<sup><i>Lab</i></sup>: the Linear ALgebra Online Lab
+</p>
+<p id="lalolib">
+a part of the <a href="http://mlweb.loria.fr" target="_blank">MLweb project</a>
+</p>
+<div class="topbuttonsdiv" style="position:absolute;top: 53px;left: 10px;width: 120px;">
+	<input id="datafile" type="file" onchange="loadTextFile();" class="hiddenfilebtn" />
+	<label for="datafile" id="lbldatafile"  title="Load an ASCII text file in the matrix 'data': one matrix row per text line with columns separated by either spaces or commas.">Load a text file</label>
+</div>
+<div class="topbuttonsdiv" style="position:absolute;top: 53px;left: 160px;width: 100px;">
+	<input id="scriptfile" type="file" onchange="loadScript();" class="hiddenfilebtn" />
+	<label for="scriptfile" id="lblscriptfile"  title="Load a script from a text file.">Load a script</label>
+</div>
+<div class="topbuttonsdiv" style="position:absolute;top: 53px;left: 290px;width: 130px;">
+	<label for="saveasname" onclick="saveWorkspace( );">Save workspace</label>  
+</div>
+
+<div class="topbuttonsdiv" style="position:absolute;top: 53px;left: 450px;width: 140px;">
+	<input id="wsfile" type="file" onchange="loadWorkspace();" class="hiddenfilebtn" />
+	<label for="wsfile" id="lblwsfile"  title="Load variables previously saved by LALOLab.">Load a workspace</label>
+</div>
+
+<div class="topbuttonsdiv" style="position:absolute;top: 53px;left: 620px;width: 110px;"  onclick="togglemathjax();">	
+	<label id="btnmathjax" >Turn on LaTeX</label>	
+</div>
+<div class="topbuttonsdiv" style="position:absolute;top: 53px;left: 760px;width: 80px;"  onclick="worker.terminate();window.location.reload();">	
+	<label id="btnreboot"  >Reboot</label>	
+</div>
+<div style="height: 45px;">	
+ 
+</div>
+
+<hr class="header-hr">
+</div>
+
+<div style="height: 1px;">
+</div>
+<div class="container">
+<div id="output" onclick="if( textselection().length == 0 ) cmdline.focus();">
+</div>
+<br>
+<label class="inputlabel">Command line:</label>
+<br>
+> <input id="cmdline" type="text" size = "59" onchange="parseinput();" onkeydown="cmdkey(event);">
+
+<div id="blockcommands">
+	<label class="inputlabel">Multi-line input for scripts:</label>
+	<br>
+	<div class=container>
+	<textarea id="cmdblock"></textarea>
+	<button id="btnrunblock" class="topbuttons" onclick="runblockinput();">Run</button>
+	<button id="btnparseblock" class="topbuttons" onclick="parseblockinput(false);" title="Translate the script to javascript code based on lalolib.js.">Javascript code</button>	
+	<button id="btnparseblockhtml" class="topbuttons" onclick="parseblockinput(true);" title="Copy and paste the HTML code in a .html file. The result should be a webpage executing the script (this requires lalolib.js in the same directory). A variable X can be displayed with print(X). ">HTML code</button>
+	</div>
+</div>
+
+<!--
+<br>
+<br><div id="progressbardiv">
+<canvas id="progressbar" width="400" height="20"></canvas>
+</div>
+-->
+
+<div id="helpview">
+Welcome!
+</div>
+<div id="helpcmds">
+	<p class="helpsectiontitle">Help</p>
+	<div id="helpcmdsWelcome"></div>
+	<p class="helpsectiontitle" onclick="toggleHelp('Basics');">Linear algebra <label id="helptogglebtnBasics" class="helptogglebtn">+</label></p>
+	<div id="helpcmdsBasics" class="helpsection"></div>
+</div>
+
+</div>
+
+<script>
+
+var Ncmds = 0; // number of commands executed
+var cmdhistory = new Array();
+var cmdhistorypointer = -1;
+var domathjax = false; // Latex output for vectors and matrices
+var lastcmdFromBlock = false;
+
+var printPrecision = 3; // number of digits to print
+var PrintMaxSize = 30; // max number of rows to print
+
+var autoPlotSizeLimit = 200; // max number of data to automatically plot with dblclick
+
+
+/* Prepare interaction with plot windows
+var plotWindows = new Array();
+
+function sendplotdata() {
+	// get first plot window in the queue
+	var pw = plotWindows.splice(0,1)[0]; 
+	// and send data to it
+	pw[0].plot(pw[1]); 
+}*/
+
+// Start Worker in the background
+var worker = new Worker("lalolabworker.js");
+
+// Build help view
+var ExampleClipboard = new Array();
+populateHelp();
+
+// Trick to make MathJax work on first commands:
+output.focus();
+output.blur();
+
+// Prepare worker 
+worker.onmessage = parseWorkerOutput ;
+
+StartingExample();
+
+// OnLoad initializations
+function bodyOnLoad() {
+	if ( typeof(MathJax) != "undefined" )
+		togglemathjax();
+	else {
+		// try loading MathJax from somewhere else
+		var DSLScript  = document.createElement("script");
+        DSLScript.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+        DSLScript.type = "text/javascript";
+        document.body.appendChild(DSLScript);
+        setTimeout( function () {
+        	if ( typeof(MathJax) != "undefined" )
+				togglemathjax();				
+			}, 500);			
+	}
+	cmdline.focus();
+}
+
+// Deal with Worker Output and print results
+function parseWorkerOutput  ( WorkerEvent ) {
+
+	if ( WorkerEvent.data.progress ) {
+		showProgress(WorkerEvent.data.progress);
+		return;
+	}
+
+	var WorkerCommand = WorkerEvent.data.cmd;
+	var WorkerResult = WorkerEvent.data.output;
+	var WorkerResultSize = WorkerEvent.data.size;
+
+	if ( WorkerEvent.data.error ) {
+		window.onerror( WorkerEvent.data.error ) ;
+		return;
+	}
+
+	if ( WorkerCommand && WorkerCommand.length > 0 ) {
+		if ( WorkerCommand == "print()" ) 
+			output.innerHTML += "<p class='outputcmd'> > </p>";
+		else if ( lastcmdFromBlock ) {
+			var cmds = cmdblock.value.split("\n");
+			output.innerHTML += "<p class='outputcmd'> > " + cmds[cmds.length-1] + "</p>";
+			lastcmdFromBlock = false;
+		}
+		else {
+			output.innerHTML += "<p class='outputcmd'> > " + WorkerCommand + "</p>";
+		}
+	}
+	var html = "";
+	if (WorkerCommand.indexOf("plot(") == 0 && WorkerResult != "undefined") {
+		var plotwindow = window.open("laloplots.html", "_blank" );		
+		if ( typeof(plotwindow) == "undefined") 
+			popupalert();
+		else if ( typeof(plotwindow.addEventListener) == "undefined") 
+			setTimeout(function () { plotwindow.plot ( WorkerResult );}, 1500);// for IE
+		else
+			plotwindow.addEventListener('load', function () { plotwindow.plot ( WorkerResult );}, true); 
+	/*
+	ANOTHER METHOD: 
+			else
+			plotWindows.push([plotwindow, WorkerResult]);		
+	*/
+
+	}
+	else if (WorkerCommand.indexOf("colorplot(") == 0 ) {
+		var plotwindow = window.open("laloplots.html", "_blank" );		
+		if ( typeof(plotwindow) == "undefined") 
+			popupalert();
+		else if ( typeof(plotwindow.addEventListener) == "undefined") 
+			setTimeout(function () { plotwindow.colorplot ( WorkerResult );}, 1500);// for IE
+		else
+			plotwindow.addEventListener('load', function () { plotwindow.colorplot ( WorkerResult );}, true);  
+	}
+	else if (WorkerCommand.indexOf("plot3(") == 0 ) {
+		var plotwindow = window.open("laloplots.html", "_blank" );		
+		if ( typeof(plotwindow) == "undefined") 
+			popupalert();
+		else if ( typeof(plotwindow.addEventListener) == "undefined") 
+			setTimeout(function () { plotwindow.plot3 ( WorkerResult );}, 1500);// for IE
+		else
+			plotwindow.addEventListener('load', function () { plotwindow.plot3 ( WorkerResult );}, true);  
+	}
+	else if (WorkerCommand.indexOf("image(") == 0 ) {
+		var plotwindow = window.open("laloplots.html", "_blank" );		
+		if ( typeof(plotwindow) == "undefined") 
+			popupalert();
+		else if ( typeof(plotwindow.addEventListener) == "undefined") 
+			setTimeout(function () { plotwindow.image ( WorkerResult );}, 1500);// for IE
+		else
+			plotwindow.addEventListener('load', function () { plotwindow.image ( WorkerResult );}, true);  
+	}
+	else if (WorkerCommand.indexOf("colormap(") == 0 ) {
+		var plotwindow = window.open("laloplots.html", "_blank" );		
+		if ( typeof(plotwindow) == "undefined") 
+			popupalert();
+		else if ( typeof(plotwindow.addEventListener) == "undefined") 
+			setTimeout(function () { plotwindow.colormap ( WorkerResult );}, 1500);// for IE
+		else
+			plotwindow.addEventListener('load', function () { plotwindow.colormap ( WorkerResult );}, true);  
+	}
+	else if (WorkerCommand == "SAVE") {
+		saveBlob(WorkerResult);
+	}
+	else {
+		var typeres = type(WorkerResult);
+		if ( typeres== "vector" || typeres == "matrix")  { 
+			// MAtrix or vector result
+			var resid = "res"+ Ncmds ;
+			if ( WorkerResultSize[1] == 1 ) {
+				// auto plot ? 
+				if ( WorkerResultSize[0]  < autoPlotSizeLimit ) {
+					output.innerHTML += "<div style='font-size: 80%;' title='Double-click to plot' ondblclick='worker.postMessage({\"cmd\" : \"plot(LALOLABLastResult)\" } );'><p id='" + resid + "' class='outputres'></p></div>";
+				}
+				else {
+					output.innerHTML += "<div style='font-size: 80%;' title='Too large to be displayed'><p id='" + resid + "' class='outputres'></p></div>";
+				}
+			}
+			else {
+				// image small enough for autoplot ?				
+				if ( WorkerResultSize[0] * WorkerResultSize[1] < autoPlotSizeLimit ) {
+					output.innerHTML += "<div style='font-size: 80%;' title='Double-click to plot' ondblclick='worker.postMessage({\"cmd\" : \"image(LALOLABLastResult)\" } );'><p id='" + resid + "' class='outputres'></p></div>";
+				}
+				else {
+					output.innerHTML += "<div style='font-size: 80%;' title='Too large to be displayed' ><p id='" + resid + "' class='outputres'></p></div>";
+				}
+			}
+			if ( domathjax ) {
+				printTeX( WorkerCommand, WorkerResult,WorkerResultSize,  resid );
+					
+				// make sure mathjax process this 
+				var htmlElem = document.getElementById(resid);
+				htmlElem.focus();
+				htmlElem.blur();
+				MathJax.Hub.Queue(["Typeset",MathJax.Hub,resid]);				
+			}
+			else {
+				printMat(WorkerResult, WorkerResultSize, resid) ;				
+			}					
+		}
+		else if (typeof(WorkerResult) == "object") {
+			// result is an object such as eigendecomposition
+			html += "<p class='outputres'> { ";
+			for ( var e in WorkerResult ) {
+				 //+ JSON.stringify(WorkerResult) +
+				var te =  type( WorkerResult[e] );
+				switch( te ) {
+				case "string":
+				case "boolean":
+				case "number":
+					html += e + ": " + WorkerResult[e] + "<br>";
+					break;
+				case "vector":
+					if (  WorkerResult[e].length <= 5 ) 
+						html += e+ ": " + printMat(WorkerResult[e]) + "<br>";					
+					else
+						html += e + ": vector of size " + WorkerResult[e].length + "<br>";
+					break;
+				case "matrix":
+					html += e + ": matrix of size " + WorkerResult[e].m + "-by-" + WorkerResult[e].n + "<br>";
+					break;
+				case "Array":
+					if (  WorkerResult[e].length <= 5 ) {
+						html += e+ ": [" 
+						for ( var k=0; k<WorkerResult[e].length-1; k++) {
+							if ( type(WorkerResult[e][k]) == "Array" || type(WorkerResult[e][k]) == "vector" )
+								html += "["+ WorkerResult[e][k] + "], ";							
+							else
+								html += WorkerResult[e][k] + ", ";
+						}
+						if ( type(WorkerResult[e][k]) == "Array" || type(WorkerResult[e][k]) == "vector" )
+							html += "["+ WorkerResult[e][k] + "] ]<br>";						
+						else
+							html += WorkerResult[e][k] + " ]<br>";
+					}
+					else
+						html += e + ": array of length " + WorkerResult[e].length + "<br>";
+					break;
+				default:
+					html +=  e + " : " + te + " <br>";
+					break;
+				}				
+			}
+			html += " } </p>";
+			output.innerHTML += html;
+			
+		}
+		else {
+			// result is a number or string 
+			output.innerHTML += "<p class='outputres'>" + WorkerResult + "</p>";
+		}
+				
+	}
+		
+	// Command history and clear cmdline
+	cmdhistory.push(cmdline.value);
+	cmdline.value = "";
+	cmdline.focus();
+	Ncmds++;
+	cmdhistorypointer = Ncmds;
+	// and scroll down to see result
+	//window.scrollTo(0, window.scrollMaxY - cmdblock.scrollHeight);
+	output.scrollTop = output.scrollHeight ;	
+	output.scrollLeft = 0;
+	
+}
+
+// Error messages
+window.onerror = function ( e ) {
+	if ( e.indexOf("DataCloneError") >= 0 ) {
+		if ( cmdline.value.length > 0 ) {
+			// This happens when a complex object is returned from the worker
+		
+			var html = "<p class='outputcmd'> > " + cmdline.value + "</p>";
+		
+			html += "<p class='outputres'>object</p>";
+			if ( cmdline.value.indexOf("=") >= 0 ) {
+				//html += " (try " + removeSpaces(cmdline.value.substr(0, cmdline.value.indexOf("="))) + ".info() to see its properties)";
+				worker.postMessage( {"cmd" : removeSpaces(cmdline.value.substr(0, cmdline.value.indexOf("="))) + ".info()" } );
+			}
+			else {
+				var c =  removeSpaces(cmdline.value) ;
+				worker.postMessage( {"cmd" : "if (typeof(" + c + ") == 'function') {tmp= 'function';} else {tmp= " + c + ".info();}", "hidecmd": true } );
+			}
+			output.innerHTML += html ; 	
+		
+			cmdhistory.push(cmdline.value);
+			cmdline.value = "";
+			Ncmds++;
+			cmdhistorypointer = Ncmds;	
+		}
+	}
+	else {
+		output.innerHTML += "<p class='errormsg'>" + e + "</p>";
+	}
+	output.scrollTop = output.scrollHeight ;	
+	output.scrollLeft = 0;	
+	cmdline.focus();
+}
+
+function popupalert() {
+	alert("Cannot open window for plot.\nPlease make sure to enable popups in the browser preferences (at least for this page).");
+}
+
+function removeSpaces( str ) {
+	return str.split(" ").join("");
+}
+/////////////////////////
+// Parse command
+////////////////////////
+function parseinput() {
+	lastcmdFromBlock = false;
+	worker.postMessage({"cmd" : cmdline.value } );		
+}
+function runblockinput() {
+	lastcmdFromBlock = true;
+	worker.postMessage({"cmd" : cmdblock.value } );		
+}
+function parseblockinput(html) {
+	var cmd = "JScode({script: \"" + cmdblock.value.split("\\").join("\\\\").split("\n").join("\\n").split('"').join('\\"') + "\", html: " + html + " })";
+	console.log(cmd);
+	worker.postMessage({"cmd" : cmd} );	
+}
+var FORCE_VALIDATE = false;
+function cmdkey(event) {
+	if ( event.keyCode == 38 ) {
+		// up arrow : recall last command
+		if ( cmdhistorypointer > 0 ) {
+			cmdhistorypointer--;
+			cmdline.value = cmdhistory[cmdhistorypointer];
+			FORCE_VALIDATE = true;
+		}
+	}
+	else if (event.keyCode == 40 ) {
+		// down arrow : next command
+		if ( cmdhistorypointer < cmdhistory.length ) {
+			cmdhistorypointer++;
+			if ( cmdhistorypointer < cmdhistory.length )
+				cmdline.value = cmdhistory[cmdhistorypointer];
+			else 
+				cmdline.value = "";
+			FORCE_VALIDATE = true;
+		}
+	}
+	else if ( event.keyCode == 13 ) {
+		// ENTER: validate command if onchange() does not fire because changed by javascript
+		if ( FORCE_VALIDATE ) 
+			parseinput();		
+		else
+			cmdline.blur();	
+	}
+	else {
+		// another key so input is changed and onchange will fire
+		FORCE_VALIDATE = false;		
+	}
+}
+/*
+function cmdhighlight( cmd ) {
+	var str = "";
+	var list = cmd.split(" ");
+	for ( var i in list ) {
+		if ( HELPcontent.hasOwnProperty(list[i]) )
+			str += "<strong>" + list[i] + "</strong> ";
+		else
+			str += list[i] + " " ;
+	}
+	return str;
+}*/
+
+function StartingExample() {
+	var show = false; // disabled !!! 
+	if ( typeof(Storage) != "undefined" ) {
+		if ( localStorage.showExample && localStorage.showExample == "no")
+			show = false;
+	}	
+	if ( show ) {
+		var timestep = 500;// to give MAthJax time to process the output...
+		worker.postMessage({"cmd" : "A = [ [1,2] ; [3,4] ; [5,6] ]   // define a matrix"} );	
+		setTimeout( function () {worker.postMessage({"cmd" : "b = [3; -0.2; 5]  // define a (column) vector "} );
+			setTimeout( function () {worker.postMessage({"cmd" : "x = A \\ b   // solve the linear system"} );	
+				setTimeout( function () {worker.postMessage({"cmd" : "e = A*x - b   // compute the error"} );	
+					setTimeout( function () { output.innerHTML += "<div style='font-size: 80%;' ><a id='btnnoexample' onclick='nomoreexample()'>Do not show this example again</a></div>";					
+					}, timestep);	
+				}, timestep);			
+			}, timestep);
+		}, timestep);		
+	}
+	else {
+		output.innerHTML += "<p class='outputcmd'> > Ready. </p>";
+	}
+}
+function nomoreexample () {
+	if ( typeof(Storage) != "undefined" ) {
+		localStorage.setItem("showExample", "no");
+		btnnoexample.innerHTML = "OK, no more example on next reboot."
+		btnnoexample.on = "";
+	}			
+}
+/////////////
+// TeX & printmat
+/////////
+
+function printMat(A, size, htmlId, append) {
+	if (typeof(append) === "undefined")
+		var append = false;
+	if ( typeof(htmlId) == "undefined") {
+		// return a string as [ [ .. , .. ] , [.. , ..] ]
+		if ( type(A) == "matrix" ) {
+			var str = "[";
+			var i;
+			var j;
+			var m = A.m
+			var n = A.n;
+
+			for (i=0;i<m; i++) {
+				str += "[";
+				for ( j=0; j< n-1; j++)
+					str += printNumber(A.val[i*n + j]) + ",";
+				if ( i < m-1)
+					str += printNumber(A.val[i*n + j]) + "],";
+				else
+					str += printNumber(A.val[i*n + j]) + "]";
+			}			
+			str += "]";
+			return str;
+		}
+		else if ( type(A) == "vector" ) {
+			var str = "[ ";
+			var i;
+			for (i=0;i<A.length - 1; i++) {
+				str += printNumber(A[i]) + "; ";
+			}
+			str += printNumber(A[i]) + " ]";
+			return str;
+		}
+	}
+	else {
+		// Produce HTML code and load it in htmlId
+		
+		var html = "";
+		var i;
+		var j;
+		
+		if (domathjax) {
+			html = tex ( A ) ;
+		}
+		else {
+			if (type(A) == "vector" ) {
+				var n = size[0];
+
+				// Vector (one column)
+				for (i=0;i<n; i++) {
+					html += "[ " + printNumber(A[i]) + " ]<br>";
+				}
+			}
+			else {
+				// Matrix
+				var m = size[0];
+				var n = size[1];
+
+				for (i=0;i<m; i++) {
+					html += "[ ";
+					for(j=0;j < n - 1; j++) {
+						html += printNumber(A.val[i*n + j]) + ", ";
+					}
+					html += printNumber(A.val[i*n + j]) + " ]<br>";
+				}
+			}
+		}
+		if (append)
+			document.getElementById(htmlId).innerHTML += html;
+		else
+			document.getElementById(htmlId).innerHTML = html;
+		
+		if ( domathjax) 
+			MathJax.Hub.Queue(["Typeset",MathJax.Hub,"output"]);			
+	}
+}
+
+function togglemathjax() {
+	if ( domathjax ) {
+		domathjax = false;
+		btnmathjax.innerHTML = "Turn on LaTeX";
+	}
+	else {
+    	if ( typeof(MathJax) != "undefined" ) {
+    		domathjax = true;
+			btnmathjax.innerHTML = "Turn off LaTeX";
+		}
+		else {
+			ert("MathJax could not be loaded.\nTo turn on LaTeX when working offline, please install a copy of MathJax in the parent folder as 'lalolab/../mathjax/' ."); 
+		}
+	}
+}
+function printTeX(cmd, res, size, htmlId) {
+	var html = "$$";
+	var i;
+	var j;
+	var idxEqual = cmd.split("==")[0].split("!=")[0].split(">=")[0].split("<=")[0].indexOf("=");
+	if ( idxEqual >= 0 && cmd.substr(idxEqual+1).indexOf("=") < 0 && cmd.indexOf("{") < 0 && cmd.indexOf("\n") < 0) {
+		// Print left-hand side of assignment if there is 1 and only 1 '=' , no braces and single-line cmd
+		var toVar = cmd.substr(0,idxEqual);		
+		html += toVar + " = ";
+	}
+	html += tex(res, size) + "$$";
+	document.getElementById(htmlId).innerHTML = html;	
+}
+function tex( x, size ) {
+	switch ( type( x ) ) {
+	case "number":
+		return printNumber(x);
+		break;
+	case "vector":
+		var n = size[0];
+		if ( n == 0 ) {
+			return "\\begin{bmatrix} \\end{bmatrix} ";
+		}
+		else if (n < PrintMaxSize ) {
+			var res = "\\begin{bmatrix}";
+			var i;			
+			for ( i=0; i< n-1; i++)
+				res += printNumber(x[i]) + " \\\\";
+			res += printNumber(x[i]) + " \\end{bmatrix} ";
+			return res;
+		}
+		else {
+			var res = "\\begin{bmatrix}";
+			var i;			
+			for ( i=0; i< 5; i++)
+				res += printNumber(x[i]) + " \\\\";
+			res +=  "\\vdots \\end{bmatrix} \\in \\mathbb{R}^{" + n + "}";
+			return res;
+//			return "vector\\ of\\ \\mathbb{R}^{" + n + "}";
+		}
+		break;	
+	case "matrix":
+		var i;
+		var j;
+		var m = size[0];
+		var n = size[1];
+		if ( m < PrintMaxSize ) {
+			var res = " \\begin{bmatrix}";
+			for (i=0; i< m -1; i++) {			
+				for( j=0;j<n-1 && j < 40 ; j++)
+					res += printNumber(x.val[i*n+j]) + " & ";
+				if ( j == n-1 )
+					res += printNumber(x.val[i*n+j] ) + " \\\\";
+				else
+					res += " \\dots \\\\";
+			}
+			for( j=0;j<n-1 && j < 40; j++)
+				res += printNumber(x.val[i*n+j]) + " & ";
+			if ( j == n-1 )
+				res += printNumber(x.val[i*n+j]) + " \\end{bmatrix} ";
+			else
+				res += " \\dots \\end{bmatrix} \\in \\mathbb{R}^{" + m + "\\times " + n + "}";
+			
+			return res;
+		}
+		else {
+			var res = " \\begin{bmatrix}";
+			for (i=0; i< 5 ; i++) {			
+				for( j=0;j<n-1 && j < 40 ; j++)
+					res += printNumber(x.val[i*n+j]) + " & ";
+				if ( j == n-1 )
+					res += printNumber(x.val[i*n+j] ) + " \\\\";
+				else
+					res += " \\dots \\\\";
+			}
+			res += " \\vdots \\end{bmatrix} \\in \\mathbb{R}^{" + m + "\\times " + n + "}";
+			return res;
+//			return "matrix\\ of\\ \\mathbb{R}^{" + m + "\\times " + n + "}";
+		}
+		break;
+	default: 
+		return "undefined";
+	}
+}
+
+function printNumber ( x ) {
+	switch ( typeof(x) ) {
+		case "undefined":
+			return "" + 0;// for sparse matrices
+			break;
+		case "string":
+			if ( domathjax ) 
+				return "\\verb&" + x + "&";
+			else
+				return x;
+			break;
+		case "boolean":
+			return x;
+			break;
+		default:	
+			if ( x == Infinity )
+				return "Inf";
+			if ( x == -Infinity )
+				return "-Inf";
+			var x_int = Math.floor(x);
+			if ( Math.abs( x - x_int ) < 2.23e-16 ) {
+				return "" + x_int;
+			} 
+			else
+				return x.toFixed( printPrecision );
+				
+			break;
+	}
+}
+
+
+function type( X ) {
+	if ( X && X.type )
+ 		return X.type;	 			 	
+ 	else {
+	 	var t = typeof( X );
+		if ( t == "object") {
+			if ( Array.isArray(X) ) {
+				if ( isArrayOfNumbers(X) )
+			 		return "vector";	// for array vectors created by hand
+			 	else 
+			 		return "Array";
+			}
+			else if ( X.buffer ) 
+		 		return "vector"; // Float64Array vector
+		 	else 
+		 		return t;
+		}
+		else 
+			return t;		 
+	}
+}
+function isArrayOfNumbers( A ) {
+	for (var i=0; i < A.length; i++)
+		if ( typeof(A[i]) != "number" )
+			return false;
+	return true;
+}
+function isScalar( x ) {
+	switch( type( x ) ) {
+		case "string":
+		case "number":
+		case "boolean":
+			return true;
+			break;
+		case "vector":
+		case "matrix":
+		default:
+			return false;
+			break;
+	}
+}
+
+function size( A, sizealongdimension ) {
+	var size;
+	switch( type(A) ) {
+	case "string":
+	case "boolean":
+	case "number":
+		size = [1,1];
+		break;
+	case "vector":
+		size = [A.length, 1];
+		break;
+	case "matrix":
+		size = A.size; 
+		break;
+	default: 
+		LALOLIB_ERROR = "Cannot determine size of object";
+		return undefined;
+		break;
+	}
+	
+	if ( typeof(sizealongdimension) == "undefined" ) 
+		return size;
+	else
+		return size[sizealongdimension-1];	
+
+}
+
+/// text selection
+function textselection () {
+	if (window.getSelection) 
+		return window.getSelection ().toString();
+	else if ( document.selection ) 
+		return document.selection.createRange().text;
+	else
+		return "";
+}
+
+//////////////////////////
+/// Files
+//////////////////////////
+
+function loadTextFile ( ) {
+
+	var reader = new FileReader();
+	var filename = datafile.files[0].name;
+	
+	// prepare callback for end of read:
+	reader.onload = function () {
+		var yesno = confirm (" Do you really want to load this file in the variable 'data'? \n\n_____________________________\n " + reader.result.slice(0,100) + "\n..." );
+		if ( yesno ) {
+			worker.postMessage({"cmd" : "data = LOAD_DATA_FILE (" + filename + ")" , "data" : reader.result} );
+		}
+	}
+	reader.readAsText(datafile.files[0]);	
+}
+function loadScript ( ) {
+
+	var reader = new FileReader();
+	var filename = scriptfile.files[0].name;
+	
+	// prepare callback for end of read:
+	reader.onload = function () {
+		cmdblock.value = reader.result;
+	}
+	reader.readAsText(scriptfile.files[0]);
+	
+}
+function saveWorkspace( ) {
+	worker.postMessage({cmd: "save()" } );
+}
+function saveBlob( blob ) {
+	if ( navigator.msSaveOrOpenBlob ) 
+		navigator.msSaveOrOpenBlob(blob, "workspace.lab"); // for IE
+	else {
+		var url = URL.createObjectURL( blob );
+		window.open(url, '_blank', '');
+		setTimeout ( function () { URL.revokeObjectURL(url);}, 1000 ) ;
+	}
+}
+function loadWorkspace( ) {	
+
+	var reader = new FileReader();
+	var filename = wsfile.files[0].name;
+	
+	// prepare callback for end of read:
+	reader.onload = function () {
+		//worker.postMessage({cmd: "LOAD_WORKSPACE" , data: new Blob([reader.result])} );
+		worker.postMessage({cmd: "LOAD_WORKSPACE" , data: reader.result} ); // XXX trasnfer arraybuffer
+	}
+	reader.readAsArrayBuffer(wsfile.files[0]);
+	
+}
+
+function clearWorkspace( ) {
+	worker.terminate();
+	window.location.reload();
+}
+
+////// load image /////// 
+
+function loadimage ( url ) {
+
+	// load a remote file (from same web server only...)
+	
+	var canvas = document.createElement("canvas");
+	var ctx = canvas.getContext("2d");
+
+	var imageObj = new Image();
+	imageObj.onload = function() {
+
+		canvas.width = this.width;
+		canvas.height = this.height; 
+		ctx.drawImage(this,0,0); 
+		var data = ctx.getImageData(0,0,this.width,this.height).data;
+		var vec = new Float64Array(this.width * this.height);
+		var k = 0;
+		for(var i = 0; i < data.length; i += 4) {
+          var brightness = 0.34 * data[i] + 0.5 * data[i + 1] + 0.16 * data[i + 2];
+          // red
+          data[i] = brightness;
+          // green
+          data[i + 1] = brightness;
+          // blue
+          data[i + 2] = brightness;
+
+          vec[k] = 255 - brightness;
+          k++;
+        }
+        
+        worker.postMessage( {cmd: "NEW_MATRIX" , m: this.height, n: this.width, values: vec }, [vec.buffer] ); 
+	};
+	imageObj.src = url;	
+}
+
+///// Progress /// 
+function showProgress( ratio ) {
+	var cssgradient = "linear-gradient(to right";
+	var i;
+	for ( i=1; i<=10; i++) {
+		if ( 10*ratio >= i )
+			cssgradient += ",rgba(0,200,0,0.3)";
+		else
+			cssgradient += ",white";
+	}
+	cssgradient += ")";
+	console.log(cssgradient);
+	cmdline.style.background = cssgradient;
+	if ( ratio >= 1 ) {
+		settimeout(function () {cmdline.style.background = "white";}, 500);
+	}
+}
+</script>
+
+</body>
+</html>

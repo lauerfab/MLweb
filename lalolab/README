@@ -1,0 +1,97 @@
+
+ MLweb: Machine Learning on the Web
+-------------------------------------
+
+
+This package includes the javascript source files for 
+
+	- LALOLib
+	- ML.js
+	- LALOLab
+
+It is released under the GPL (see gpl.txt).
+
+
+NOTE TO USERS
+-------------
+
+This package is mostly intended for developers wishing to modify or extend these tools.
+Ready-to-use versions of the tools are available online at:
+
+	http://mlweb.loria.fr/lalolib.js --> LALOLib (javascript API)
+	http://mlweb.loria.fr/ml.js      --> ML.js   (javascript API)
+	http://mlweb.loria.fr/lalolab/   --> LALOLab (web application)
+
+See also:
+
+	http://mlweb.loria.fr/lalolab/lalolib.html  --> documentation
+
+
+CONTENTS
+--------
+
+	index.html   --> main HTML page for the LALOLab Web Application
+	lalolib.html --> documentation for LALOLib and ML.js
+	
+	src/		 --> javascript source files (including LALOlib & ML.js)
+	help/ 		 --> help source files
+	toolboxes/   --> source files for additional toolboxes (possibly empty)
+	examples/	 --> data files for examples (possibly not included in this package) 
+	
+	
+
+INSTALL
+-------
+
+- To build LALOLab and the libraries (also required after every modification of a .js file), go to the lalolab/ directory and type:
+
+	make
+
+Note:
+The first call to make will download the dependencies (glpk.js and jszip.js) with Wget and thus will fail if Wget is not installed. In this case, download manually the files and store them as 
+
+http://github.com/hgourvest/glpk.js/dist/glpk.min.js   -->   lalolab/src/glpk.min.js
+http://github.com/Stuk/jszip/dist/jszip.min.js         -->   lalolab/jszip.min.js
+
+
+HOW TO RUN LALOLAB
+------------------
+
+- To run LALOLab, open index.html in a browser, for instance to run LALOLab in Firefox locally:
+
+	firefox index.html
+
+- To run LALOLab in Chrome locally, you need to use the '--allow-file-access-from-files' flag on the command line. For Chromium under Linux, you can use:  
+
+	./chromelab
+	
+
+LIBRARIES
+---------
+
+The libraries can be used in another project simply by copying two files:
+
+lalolib.js and lalolibworker.js  --> for LALOLib
+ml.js and mlworker.js            --> for ML.js
+
+These files are created during the INSTALL procedure above.
+
+
+DOCUMENTATION and API REFERENCE
+-------------------------------
+
+See 
+
+	lalolib.html
+
+This documentation is also valid for the machine learning library ML.js.
+
+
+CONTACT
+-------
+
+MLweb is developed by Fabien Lauer at the LORIA, University of Lorraine, France. 
+
+Comments, feedback and bug reports can be sent to fabien.lauer@loria.fr.
+
+

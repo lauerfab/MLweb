@@ -1,0 +1,1 @@
+chromium-browser --allow-file-access-from-files index.html &

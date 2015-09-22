@@ -1,0 +1,327 @@
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>LALOLib: writing efficient code</title>
+	<script type="application/x-javascript" src="lalolib.js"> </script>
+	<style>
+	body {
+		font-family: Verdana, Geneva, sans-serif;
+		margin-left: 30px;
+		margin-right: 50px;
+		text-align: justify;
+	}
+	
+	h1 {
+		font-size: 200%;
+		color: #00A0D0; 
+		font-weight: normal;
+		padding-left: .3em;
+		border-bottom-style: solid;
+		border-bottom-width: 5pt;
+		border-bottom-color: #0080B0;
+	}
+
+	h2 {
+		color: #FFFFFF; /* 000000 */
+		background-color: #0080B0;
+		background: linear-gradient(to right,#0080B0,#0080B0,white) ;
+		margin-top: 2em;
+		padding-top: 3pt;
+		padding-bottom: 3pt;
+		padding-left: 1em;
+		font-weight: bold;
+		font-size: 110%;
+		border-radius: 4px;
+	}
+	.res {
+		position:relative;		
+		border: 5px solid #0080D0;		
+		border-radius: 5px;	
+		border-left: 10em solid #0080D0;		
+	}
+	.restitle {
+		color: white;	
+		position: absolute;
+		left: -8em;	
+		top: 0;
+	}
+	tr.hline {	    
+	    height: 1em;
+	}
+	td {
+		padding-left: 5px;
+		padding-right: 5px;
+	}
+	</style>
+</head>
+
+<body>
+
+<h1>Writing efficient code with LALOLib</h1>
+
+This page provides a list of guidelines to write efficient code with <a href="lalolib.html">LALOLib</a>.
+<ol>
+<li><a href="#usejavascript">Use javascript code instead of LALOLab scripts</a></li>
+<li><a href="#usetypedobj">Use typed objects</a></li>
+<li><a href="#usetypedfunc">Use typed functions</a></li>
+<li><a href="#accessdirect">Access elements of a vector or matrix directly</a></li>
+<li><a href="#usepointers">Use pointer-like references</a></li>
+<li><a href="#useloops">Do not think in you are in Matlab: loops are not so bad!</a></li>
+<li><a href="#garbage">Spare the garbage collector: do not create many objects unnecessarily</a></li>
+<li><a href="#optimizers">Write optimizers-friendly javascript code</a></li>
+</ol>
+
+<h2 id="usejavascript">Use javascript code instead of LALOLab scripts</h2>
+
+Consider a LALOLab script and its equivalent javascript translation (jsscript), then
+<pre>lab.exec(jsscript)</pre>
+will always be slightly faster than
+<pre>lab.do(script)</pre>
+
+Javascript code for any LALOLab script can be easily obtained by clicking the "Javascript code" button in <a href="index.html">LALOLab</a>.
+Then, the following guidelines can be applied to further optimize the code. 
+
+
+<h2 id="usetypedobj">Use typed objects</h2>
+
+<p>
+If your page creates matrices and vectors, then it should create them with the LALOLib functions 
+<pre>
+zeros(m,n), ones(m,n), rand(m,n)... 
+</pre>
+which will enforce a particular object structure on them for faster subsequent computations.
+</p>
+<p>
+You can also build matrices with Arrays of Arrays and call <pre>A = mat(anArrayOfArrays, true)</pre> to convert them to LALOLib matrices, but this will be slower and will use more memory.
+</p>
+
+<h2 id="usetypedfunc">Use typed functions</h2>
+
+<p>
+The general purpose functions listed below are fine to use once in a while, but consume time to determine how to perform the operation depending on the type of the arguments. Therefore, it is always faster (and highly recommended inside loops) to use dedicated typed functions as detailed below.
+</p>
+
+<table  style="border: 1px solid black;">
+<tr><th>General purpose<br> function</th><th>Type of <br>argument a</th><th>Type/value of<br>argument b</th><th>Equivalent <br>typed function</th></tr>
+<tr class="hline"></tr>
+<tr><td>add(a,b)</td>
+			<td>number</td><td>vector</td><td>addScalarVector(a,b)</td></tr>
+<tr><td></td><td>vector</td><td>number</td><td>addScalarVector(b,a)</td></tr>
+<tr><td></td><td>number</td><td>matrix</td><td>addScalarMatrix(a,b)</td></tr>
+<tr><td></td><td>matrix</td><td>number</td><td>addScalarMatrix(b,a)</td></tr>
+<tr><td></td><td>vector</td><td>vector</td><td>addVectors(a,b)</td></tr>
+<tr><td></td><td>matrix</td><td>matrix</td><td>addMatrices(a,b)</td></tr>
+<tr class="hline"></tr>
+<tr><td>sub(a,b)</td>
+			<td>number</td><td>vector</td><td>subScalarVector(a,b)</td></tr>
+<tr><td></td><td>vector</td><td>number</td><td>subVectorScalar(a,b)</td></tr>
+<tr><td></td><td>number</td><td>matrix</td><td>subScalarMatrix(a,b)</td></tr>
+<tr><td></td><td>matrix</td><td>number</td><td>subMatrixScalar(a,b)</td></tr>
+<tr><td></td><td>vector</td><td>vector</td><td>subVectors(a,b)</td></tr>
+<tr><td></td><td>matrix</td><td>matrix</td><td>subMatrices(a,b)</td></tr>
+<tr class="hline"></tr>
+<tr><td>minus(a)</td>
+			<td>number</td><td></td><td>-a</td></tr>
+<tr><td></td><td>vector</td><td></td><td>minusVector(a)</td></tr>
+<tr><td></td><td>matrix</td><td></td><td>minusMatrix(a)</td></tr>
+<tr class="hline"></tr>
+<tr><td>mul(a,b)</td>
+			<td>number</td><td>vector</td><td>mulScalarVector(a,b)</td></tr>
+<tr><td></td><td>number</td><td>matrix</td><td>mulScalarMatrix(a,b)</td></tr>
+<tr><td></td><td>vector</td><td>vector</td><td>dot(a,b)</td></tr>
+<tr><td></td><td>matrix</td><td>vector</td><td>mulMatrixVector(a,b)</td></tr>
+<tr><td></td><td>matrix</td><td>matrix</td><td>mulMatrixMatrix(a,b)</td></tr>
+<tr class="hline"></tr>
+<tr><td>entrywisemul(a,b)</td>
+			<td>vector</td><td>vector</td><td>entrywisemulVector(a,b)</td></tr>
+<tr><td></td><td>matrix</td><td>matrix</td><td>entrywisemulMatrix(a,b)</td></tr>
+<tr class="hline"></tr>
+<tr><td>entrywisediv(a,b)</td>
+			<td>vector</td><td>number</td><td>divVectorScalar(a,b)</td></tr>
+<tr><td></td><td>number</td><td>vector</td><td>divScalarVector(a,b)</td></tr>
+<tr><td></td><td>matrix</td><td>number</td><td>divMatrixScalar(a,b)</td></tr>
+<tr><td></td><td>number</td><td>matrix</td><td>divScalarMatrix(a,b)</td></tr>
+<tr><td></td><td>vector</td><td>vector</td><td>divVectors(a,b)</td></tr>
+<tr><td></td><td>matrix</td><td>matrix</td><td>divMatrices(a,b)</td></tr>
+<tr class="hline"></tr>
+<tr><td>outerprod(a,b)</td>
+			<td>vector</td><td>vector</td><td>outerprodVectors(a,b)</td></tr>
+<tr class="hline"></tr>
+<tr><td>sum(a,b)</td>
+			<td>vector</td><td>undefined or b=1</td><td>sumVector(a)</td></tr>
+<tr><td></td><td>matrix</td><td>undefined</td><td>sumMatrix(a)</td></tr>
+<tr><td></td><td>matrix</td><td>b=1</td><td>sumMatrixRows(a)</td></tr>
+<tr><td></td><td>matrix</td><td>b=2</td><td>sumMatrixCols(a)</td></tr>
+<tr class="hline"></tr>
+<tr><td>prod(a,b)</td>
+			<td>vector</td><td>undefined or b=1</td><td>prodVector(a)</td></tr>
+<tr><td></td><td>matrix</td><td>undefined</td><td>prodMatrix(a)</td></tr>
+<tr><td></td><td>matrix</td><td>b=1</td><td>prodMatrixRows(a)</td></tr>
+<tr><td></td><td>matrix</td><td>b=2</td><td>prodMatrixCols(a)</td></tr>
+<tr class="hline"></tr>
+<tr><td>min(a,b)</td>
+			<td>vector</td><td></td><td>minVector(a)</td></tr>
+<tr><td>(or max)</td><td>matrix</td><td></td><td>minMatrix(a)</td></tr>
+<tr><td></td><td>vector</td><td>number</td><td>minVectorScalar(a,b)</td></tr>
+<tr><td></td><td>number</td><td>vector</td><td>minVectorScalar(b,a)</td></tr>
+<tr><td></td><td>vector</td><td>vector</td><td>minVectorVector(b,a)</td></tr>
+<tr><td></td><td>matrix</td><td>b=1</td><td>minMatrixRows(a)</td></tr>
+<tr><td></td><td>matrix</td><td>b=2</td><td>minMatrixCols(a)</td></tr>
+<tr><td></td><td>matrix</td><td>number</td><td>minMatrixScalar(a,b)</td></tr>
+<tr><td></td><td>number</td><td>matrix</td><td>minMatrixScalar(b,a)</td></tr>
+<tr><td></td><td>number</td><td>matrix</td><td>minMatrixMatrix(a,b)</td></tr>
+<tr class="hline"></tr>
+<tr><td>transpose(a)</td>
+			<td>vector</td><td></td><td>transposeVector(a)</td></tr>
+<tr><td></td><td>matrix</td><td></td><td>transposeMatrix(a)</td></tr>
+<tr class="hline"></tr>
+<tr><td>get(a)</td>
+			<td>vector</td><td></td><td>vectorCopy(a)</td></tr>
+<tr><td></td><td>matrix</td><td></td><td>matrixCopy(a)</td></tr>
+<tr class="hline"></tr>
+<tr><td>get(a,b)</td>
+			<td>vector</td><td>number</td><td>a[b]</td></tr>
+<tr><td></td><td>vector</td><td>vector/Array</td><td>getSubVector(a,b)</td></tr>
+<tr class="hline"></tr>
+<tr><td>get(a,b,c)</td>
+			<td>matrix</td><td>b: number, c=[]</td><td>getRows(a,[b])</td></tr>
+<tr><td></td><td>matrix</td><td>b: vector/Array, c=[]</td><td>getRows(a,b)</td></tr>
+<tr><td></td><td>matrix</td><td>b=[], c: number</td><td>getCols(a,[c])</td></tr>
+<tr><td></td><td>matrix</td><td>b=[], c: vector/Array</td><td>getCols(a,c)</td></tr>
+<tr><td></td><td>matrix</td><td>b: vector/Array, <br>c: vector/Array</td><td>getSubMatrix(a,b,c)</td></tr>
+<tr class="hline"></tr>
+<tr><td>randn(), randn(1), randn(1,1)</td><td></td><td></td><td>randnScalar()</td></tr>
+<tr class="hline"></tr>
+<tr><td>Math functions</td><td>number</td><td></td><td>e.g., Math.exp(a)</td></tr>
+<td>e.g., exp(a)...</td><td>vector</td><td></td><td>e.g., expVector(a)</td></tr>
+<tr><td></td><td>matrix</td><td></td><td>e.g., expMatrix(a)</td></tr>
+
+</table>
+
+<h2 id="accessdirect">Access elements of a vector or matrix directly</h2>
+
+<p>
+The size of a vector x can be directly accessed as 
+<pre>
+x.length     // vector dimension
+</pre>
+Then, the element x<sub>i</sub> can be accessed with
+<pre>
+x[i]
+</pre>
+</p>
+<p>
+The size of a matrix A can be directly accessed as 
+<pre>
+A.length  // number of rows
+A.m       // number of rows (= A.length)
+A.n       // number of columns
+</pre>
+Then, the element A<sub>ij</sub> can be accessed with
+<pre>
+A.val[i*A.n + j]
+</pre>
+</p>
+
+<h2 id="usepointers">Use pointer-like references</h2>
+
+<h4>To access matrix rows</h4>
+
+Consider scanning the rows of matrix X inside a loop as 
+<pre>
+for(i = 0; i < X.length; i++) {
+	Xi = getRows(X, [i]);
+	... work with Xi ... 
+}
+</pre>
+With a call to get (or getRows) the rows are <i>copied</i> into Xi. But if work on Xi only involves reading its entries, this can be made faster by using X.row(i) as 
+<pre>
+for(i = 0; i < X.length; i++) {
+	Xi = X.row(i);
+	... work with Xi ... 
+}
+</pre>
+which provides a pointer-like reference to the ith row of X without copying the data. However, remember that in this case any modification to Xi also applies to X. 
+
+<h4>To access a contiguous subset of entries in a vector</h4>
+
+Consider the code which extracts the first n entries of a vector x as
+<pre>
+u = getSubVector(x, range(0, n) );    // equivalent to u = get(x, range(0, n) )
+</pre>
+by copying these entries into u. 
+If the work with u only involves reading its entries, then we can instead get a pointer-like reference to the subvector as
+<pre>
+u = x.subarray(0, n);
+</pre>
+without copying the data.
+
+<h2 id="useloops">Do not think you are in Matlab: loops are not so bad!</h2>
+
+<p>
+With LALOLib, there is no obvious need for loop hunting and vectorization. 
+</p>
+For instance, in Matlab, 
+<pre>
+x = (a(2:N) - a(1:N-1)) .* b
+</pre>
+is typically faster than 
+<pre>
+for i=1:N-1
+	x(i) = (a(i+1) - a(i)) * b(i)
+end
+</pre>
+But with LALOLib, 
+<pre>
+for (i=0; i < N-1; i++) {
+	x[i] = (a[i+1] - a[i]) * b[i] ;
+}
+</pre>
+is probably as fast as 
+<pre>
+x = entrywisemulVectors( subVectors( a.subarray(1,N), a.subarray(0,N-1) ) , b);
+</pre>
+which is faster than
+<pre>
+x = entrywisemulVectors( subVectors( getSubVectors(a, range(1,N)), getSubVectors(a, range(0,N-1)) ), b);
+</pre>
+The reason is that linear algebra functions like subVectors end up being implemented as javascript loops in the flavor of the one above. 
+<p>
+However, using the LALOLib functions can still be faster in some cases where the loop does not get optimized by the browser for one of the reasons detailed at the bottom of this page.
+</p>
+
+<h2 id="garbage">Spare the garbage collector: do not create many objects unnecessarily</h2>
+
+<p>
+Memory cannot be explicitly freed in Javascript, which instead relies on an uncontroled garbage collector. This garbage collectors periodically scans all variables and objects to detect the ones that can be destroyed. The more objects (or variables) you create, the longer the scans take, and eventually even the smallest computations can become very slow.
+</p>
+<p>
+A typical example of this occurs when you create an m-x-n matrix with many rows as an Array of Arrays instead of using zeros(m,n): 
+<pre>
+A = new Array(m);
+for ( i=0; i < m; i++)
+	A[i] = new Array(n); 	// or new Float64Array(n) or zeros(n)
+</pre>
+In this example, m+1 objects are created versus a single one when using A = zeros(m,n).
+</p>
+<p>
+Another common mistake is to create global variables for temporary use. Any variable used temporarily in a function should be a local one in order to be freed from memory when the function returns. Remember that in javascript, local variables are declared with the keyword <i>var</i>. Undeclared variables are always global. 
+</p>
+
+<h2 id="optimizers">Write compiler-friendly javascript code</h2>
+
+A number of constructs should be avoided in order not to prevent code optimization performed by the compiler embedded in the browser: use the following checklist.
+<ul>
+<li>Write (and use) typed functions with arguments and returning value of fixed typed:<br>if an argument to a function can be of different types, the function will probably not be optimized. If you need to write such a function, defer all significant computations to subfunctions dedicated to the various types. </li>
+<li>Write small (typed) functions for computational intensive subtasks: these will probably be better optimized.</li>
+<li>Write loops over Arrays with explicit indexing instead of for (i in a) {...}.</li>
+<li>Do not modify the structure of objects:<br>Adding fields to a matrix object (like for instance A.singularvalues = svd(A) ) changes the internal type of the matrix and makes functions of that matrix execute with non-optimized code.</li>
+<li>Do not use <i>try... catch</i> statements.</li>
+<!--<li>Write small functions for repetitive tasks:<br>Javascript code gets optimized at the first execution.</li>-->
+</ul>
+
+
+<br><br><br><br><br><br><br><br>
+</body>
+</html>
+

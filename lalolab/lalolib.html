@@ -1,0 +1,586 @@
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>LALOLib: scientific computing in web pages made easy</title>
+	<meta charset="utf-8" />
+	<meta name="description" content="Javascript libraries for machine learning and scientific computing (including  linear algebra, statistics and optimization)." />
+	<script type="application/x-javascript" src="lalolib.js"> </script>
+   <script type="application/x-javascript" src="lalohelp.js"> </script>            
+	<style>
+	body {
+		font-family: Verdana, Geneva, sans-serif;
+		margin-left: 30px;
+		margin-right: 50px;
+		text-align: justify;
+	}
+	
+	h1 {
+		font-size: 200%;
+		color: #00A0D0; 
+		font-weight: normal;
+		padding-left: .3em;
+		border-bottom-style: solid;
+		border-bottom-width: 5pt;
+		border-bottom-color: #0080B0;
+	}
+
+	h2 {
+		color: #FFFFFF; /* 000000 */
+		background-color: #0080B0;
+		background: linear-gradient(to right,#0080B0,#0080B0,white) ;
+		margin-top: 3em;
+		padding-top: 3pt;
+		padding-bottom: 3pt;
+		padding-left: 1em;
+		font-weight: bold;
+		font-size: 110%;
+		border-radius: 4px;
+		
+	}
+	.res {
+		position:relative;		
+		border: 5px solid rgba(0,140,220,0.5);/*#0080D0;		*/
+		border-radius: 5px;	
+		border-left: 10em solid rgba(0,140,220,0.5); /*#0080D0;		*/
+	} 
+	.restitle {
+		color: white;	
+		position: absolute;
+		left: -8em;	
+		top: 0;
+	}
+	.container {
+		position: relative;
+		left: 0px;
+		top: 0px;
+		text-align: left ;
+	}
+	.helpcontent {
+		font-size: 80%;
+	}
+	#helpview {
+		font-family: sans-serif; 	
+		background-color: white;
+		color: black; 
+		position: absolute;
+		top:0;
+		left: 25%;
+		width: 73%;
+		height: 800px;
+		overflow: auto;
+	}
+	.helpsectiontitle {
+		font-weight: bold;	
+		margin-top: 5px; 
+		margin-bottom: 5px; 	
+	}
+	.helpsection {
+		max-height: 0px;
+		opacity: 0;
+		visibility: hidden;
+		transition: max-height 0.3s, opacity 0.2s;
+	}
+	.helptogglebtn {
+		color:white;
+		background-color:  #00A0D0; 
+		border: 2px solid  #00A0D0; 
+		border-radius: 4px;	
+	}
+	#helpcmds {
+		font-family: sans-serif; 	
+		background-color: white;
+		color: black; 
+		font-size: 75%;
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 20%;
+		/*height: 53%;/*330px;*/
+		overflow: auto;
+	}
+	a.helpcmd {
+		display: block;
+		margin-top: 0;
+		margin-bottom: -1em;
+	}
+	a.helpcmd:hover {
+		font-size: 140%;	
+	}
+
+
+	</style>
+</head>
+
+<body>
+
+<h1><strong>LALOLib</strong>: <span style="font-size:90%;">scientific computing in web pages made easy</span><br><br>
+<span style="padding-left: 5em;font-size:90%;">and extended with machine learning capabilities in</span>  <strong>ML.js</strong></h1>
+<p>
+LALOLib (Linear ALgebra Online Library) is a library entirely written in Javascript to enable and ease mathematical computing within web pages. It is developed as a part of the <a href="http://mlweb.loria.fr/">MLweb project</a> and constitutes the core of <a href="index.html">LALOLab</a> (an online scientific computing environment). It also provides the basic building blocks for <a href="http://mlweb.loria.fr/#mllib">ML.js</a>, a javascript library for machine learning. 
+</p>
+<p>
+LALOLib includes functions for
+<ul>
+<li>linear algebra,</li>
+<li>statistics,</li>
+<li>optimization (based on <a target="_blank" href="https://github.com/hgourvest/glpk.js">glpk.js</a>),</li> 
+<li>machine learning (in the <strong><i>ML.js</i></strong> variant),</li>
+</ul>
+all easily loaded with a simple line of HTML:
+<pre>
+	&lt;script src="http://mlweb.loria.fr/lalolib.js"&gt;&lt;/script&gt;
+</pre>
+or 
+<pre>
+	&lt;script src="http://mlweb.loria.fr/ml.js"&gt;&lt;/script&gt;
+</pre>
+for ML.js.
+</p>
+<p> Alternatively, you can use a local copy of the library (download <a href="lalolib.zip" download>lalolib</a> or <a href="ml.zip" download>ml.js</a>) and modify the path accordingly. 
+<!--<pre>
+	&lt;script src="lalolib.js"&gt;&lt;/script&gt;
+</pre>
+when using a local copy of the library (<a href="lalolib.js" download>download lalolib.js</a>).-->
+</p>
+
+<p>
+The following shows how to use the library. The <a href="#apiref">list of available functions</a> can also be quickly accessed in <a href="index.html">LALOLab</a>, on the right of the screen.
+</p>
+
+<ol>
+<li><a href="#direct">The direct (synchronous) method</a></li>
+<li><a href="#safer">The safer (asynchronous) method: Computing in a background Lalolab</a></li>
+<li><a href="#sendingdata">Sending data to and retrieving data from a background Lalolab</a></li>
+<li><a href="#parallel">Parallel computing with multiple Labs</a></li>
+<li><a href="#closing">Closing a Lab</a></li>
+<li><a href="#directscripts">The direct method for scripts</a></li>
+<li><a href="#importscripts">Importing LALOLab scripts</a></li>
+<li><a href="#importjavascript">Importing Javascript/LALOLib code</a></li>
+<li><a href="#datatypes">Implementation details and data types</a></li>
+<li><a href="#ml">Using the machine learning functions</a></li>
+<li><a href="#efficient">Writing efficient code with LALOLib</a></li>
+<li><a href="#extend">Extending LALOLib/LALOLab</a></li>
+<li><a href="#apiref">Available functions / API reference</a></li>
+</ol>
+
+
+<h2 id="direct">The direct (synchronous) method</h2>
+
+<p>
+LALOLib functions can be used in a straightforward manner to implement computations in the current scope. 
+</p>
+
+<button onclick="ex1();">Run example 1: compute the norm of a small vector</button> <br>
+<pre id="pre1">
+</pre>
+<div class="res"><label class="restitle">res1</label><label id="res1">Click the button above to run the example</label></div>
+
+<h2 id="safer">The safer (asynchronous) method: Computing in a background Lab</h2>
+<p>
+The direct method is unsafe in the sense that it makes the browser freeze while waiting for the result. <br>
+If the computations take too long, the alternative is to do them in the background. This is implemented by opening a Lab with 
+<pre>
+	var lab = new Lalolab() ;   // open a standard Lab
+</pre>
+or with 
+<pre>
+	var lab = new MLlab() ;    // open a Lab with machine learning capabilities
+</pre>
+depending on the desired capabilities. Then, commands can then be sent the the lab with <i>do( script, callback )</i> or <i>exec( command_string, callback )</i>. If an action needs to be taken upon the completion of the command, a callback function is provided.
+</p>
+<p>
+ <strong>Note:</strong> when using a local copy of lalolib.js (or ml.js), this requires a local copy of <a href="lalolibworker.js" download>lalolibworker.js</a> (or <a href="mlworker.js" download>mlworker.js</a>) in the same directory. 
+</p>
+<button onclick="ex2();">Run example 2: create a large random matrix and compute its singular values</button> <br>
+<pre id="pre2">
+</pre>
+<div class="res"><label class="restitle">res2</label><label id="res2">Click the button above to run the example</label></div>
+<p>
+The difference between <i>do( script, callback )</i> and <i>exec( command_string, callback )</i> is that <i>do</i> parses the string argument before executing it, whereas <i>exec</i> directly executes it. Thus, 
+<pre>
+	lab.do( "x = (2*A + C*D) \ b" )
+</pre>
+is equivalent to
+<pre>
+	lab.exec("x = solve( add( mul(2,A), mul(C,D) ), b)");
+</pre>
+</p>
+
+
+<h2 id="sendingdata">Sending data to and retrieving data from a background Lab</h2>
+<p>
+Any Lab running in the background works with an independent scope, i.e., it cannot access variables in the current scope, nor can you access its variables directly. <br>
+Example 3 shows how to send data to a Lab with the function <pre>load( variable_in_current_scope, variable_name_in_the_lab, callback)</pre> and how to recover data from a Lab with a call to <pre>getObject( variable_name_in_the_lab, callback )</pre>
+</p>
+<p>
+Note that this method can be combined with the direct method for instance to generate random data in the current scope with <i>randn()</i> before sending it to the lab. </p>
+
+<button onclick="ex3();">Run example 3: create a matrix in the current scope and compute its norm in the background</button> <br>
+<pre id="pre3">
+</pre>
+<div class="res"><label class="restitle">res3</label><label id="res3">Click the button above to run the example</label></div>
+
+
+
+<h2 id="parallel">Parallel computing with multiple Labs</h2>
+<p>
+Multiple Labs can be created. Each Lab works with its own private scope and runs in a different thread (a web worker in javascript language). 
+</p>
+
+<button onclick="ex4();">Run example 4: create 4 large random matrices and compute their singular values in parallel</button> <br>
+<pre id="pre4">
+</pre>
+<div class="res"><label class="restitle">res4</label><label id="res4">Click the button above to run the example</label></div>
+
+
+<h2 id="closing">Closing a Lab</h2>
+<p>
+In order to free the memory or to force a Lab to stop computing, a Lab can be closed with
+<pre>
+	lab.close(); 
+</pre>
+</p>
+
+<h2 id="directscripts">The direct method for scripts</h2>
+
+<p>
+The direct method can also be used with LALOLab scripts without having to memorize LALOLib functions. To execute a script in the current global scope, use <i>lalo( script )</i>, where <i>script</i> is a string referring to global variables in the page. 
+</p>
+<button onclick="ex5();">Run example 5: compute the dot product between two vectors</button>
+<pre id="pre5">
+</pre>
+<div class="res"><label class="restitle">res5</label><label id="res5">Click the button above to run the example</label></div>
+
+
+<h2 id="importscripts">Importing LALOLab scripts</h2>
+
+<p>
+Scripts written with LALOLab instructions can be imported in a Lab with the <i>import( script, callback )</i> function. However, the script must comply with the same-origin policy (typically, it must be located on the same server).
+</p>
+<button onclick="ex6();">Run example 6: import a function from a script with LALOLab insctructions</button>
+<pre>
+File "test.lalo":
+	function sumsquares ( x ) {
+		return (sum(x.*x))
+	}
+</pre>
+<pre id="pre6">
+</pre>
+<div class="res"><label class="restitle">res6</label><label id="res6">Click the button above to run the example</label></div>
+
+<h2 id="importjavascript">Importing Javascript/LALOLib code</h2>
+
+<p>
+Scripts written in pure Javascript (possibly calling LALOLib functions) can be imported in a Lab with the <i>importjs( JSscript, callback )</i> function. However, the script must comply with the same-origin policy (typically, it must be located on the same server).
+</p>
+<button onclick="ex7();">Run example 7: import a javascript file</button>
+<pre>
+File "test.js":
+	function sumsquaresjs (x) {
+		var ss = 0;
+		for ( var i = 0; i &lt; x.length; i++)
+			ss += x[i] * x[i];
+		return ss;
+	}
+</pre>
+<pre id="pre7">
+</pre>
+<div class="res"><label class="restitle">res7</label><label id="res7">Click the button above to run the example</label></div>
+
+
+
+<h2 id="datatypes">Implementation details and data types</h2>
+
+The type of a variable <code>x</code> is recovered with
+<pre>
+type(x)	 // returns the type of x as a string
+</pre>
+
+
+<h4>Basic types</h4>
+
+The following basic types are found in javascript:
+<pre>
+"undefined"
+"number" 		// all numbers are 64-bit floats (double)
+"boolean"
+"string"
+"function"		// functions are stored in variables
+"object"
+</pre>
+
+The basic type of a variable <code>x</code> can be recovered with 
+<pre>
+typeof(x)
+</pre>
+which returns the uninformative "object" for all the types below. <code>type(x)</code> returns the correct type (but is typically slower) as 
+<pre>
+"vector"
+"matrix"
+"spvector"
+"spmatrix"
+"Array"		// standard javascript Array
+</pre>
+Note that <code>"vector"</code> is also returned for Arrays containing only numbers. Arrays can be used in general for lists of variable length with easy insertion and removal of entries.
+
+<h4>Vectors</h4>
+
+<p>
+Vectors are implemented as standard <code>Float64Array</code> objects with a fixed size stored in the property <code>length</code>:
+<pre>
+x = zeros(5);    // this is equivalent to x = new Float64Array(5);
+dim = x.length;  // returns dim = 5
+</pre>
+The entries can be accessed directly with square brackets and indexes in the range 0...x.length-1 as
+<pre>
+x[0] = first component of the vector x
+x[1] = second component of the vector x
+...
+x[x.length-1] = last component of the vector x
+</pre>
+</p>
+
+<p>
+A vector can be copied with 
+<pre>
+x2 = vectorCopy( x );
+</pre>
+while <code>x2 = x</code> makes <code>x2</code> point to the same location in memory as <code>x</code> (in a LALOLab script, x2 = x actually copies x into x2).
+</p>
+<p>
+The vector copy can also be used to convert a standard javascript <code>Array</code> of numbers to a vector with 
+<pre>
+x = vectorCopy( [1, 2, 3, -4.2] );   // returns a Float64Array (i.e. a vector) initialized with the given values 
+</pre>
+</p>
+
+<h4>Matrices</h4>
+
+Matrices are implemented as <code>Matrix</code> objects created with 
+<pre>
+A = new Matrix(m,n);    // this is equivalent to A = zeros(m,n);
+</pre>
+and having the following properties:  
+<pre>
+A.type      : object type = "matrix" (constant)
+A.m         : number of rows (constant)
+A.n         : number of columns (constant)
+A.length    : number of rows (constant) (= A.m)
+A.size      : size as an Array = [A.m, A.n] (constant)
+A.val       : vector of values
+</pre>
+The matrix entries are stored rowwise in a single vector <code>A.val</code>, i.e., the entry at the ith row and jth column is
+<pre>
+A.val[i*A.n + j]   // = A[i,j] in LALOLab
+</pre>
+for i in the range 0...A.m-1 and j in the range 0...A.n-1.
+
+<h4>Sparse vectors and matrices (experimental)</h4>
+
+<p>
+Sparse vectors and matrices are created with 
+<pre>
+a = sparse( b );
+A = sparse( B );
+</pre>
+The dense versions can be recovered with 
+<pre>
+b = full( a );
+B = full( A );
+</pre>
+</p>
+
+<p>
+Sparse vectors are implemented as <code>spVectors</code> objects having the following properties:  
+<pre>
+a.type      : object type = "spvector" (constant)
+a.length    : size of the vector (constant)
+a.size      : size as an Array = [a.length, 1] (constant)
+a.val       : vector of values
+a.ind       : vector of indexes
+a.nnz       : number of nonzeros
+</pre>
+The vector entries are stored such that a<sub>i</sub> = <code>a.val[k]</code> with <code>i = a.ind[k]</code>. 
+</p>
+<p>
+Sparse matrices are implemented as <code>spMatrix</code> objects having the following properties:  
+<pre>
+A.type      : object type = "spmatrix" (constant)
+A.m         : number of rows (constant)
+A.n         : number of columns (constant)
+A.length    : number of rows (constant) (= A.m)
+A.rowmajor  : true/false for row/column compressed format
+A.size      : size as an Array = [A.m, A.n] (constant)
+A.val       : vector of values
+A.cols      : list of column starting indexes 
+A.rows      : list of row indexes
+A.nnz       : number of nonzeros
+</pre>
+The matrix entries are stored by default (with <code>A.rowmajor = true</code>) in a row-sparse format with
+<pre>
+A.rows[i] = starting index of row i in A.val and A.cols
+A.cols[k] = column of the value A.val[k]	
+</pre>
+or (with <code>A.rowmajor = false</code>) in a column-sparse format with
+<pre>
+A.cols[j] = starting index of column j in A.val and A.rows
+A.rows[k] = row of the value A.val[k]	
+</pre>
+</p>
+
+<h4>Other types</h4>
+
+Complex objects like classifiers or regression models have a type string in the format <code>"Class:Subclass"</code>, for instance:
+<pre>
+"Distribution:Gaussian"		// an object created by 'new Distribution(Gaussian,...)'
+"Classifier:SVM"		// an object created by 'new Classifier(SVM, ... )'
+"Regression:LASSO"		// an object created by 'new Regression(LASSO, ... )'
+</pre>
+ 
+
+<h2 id="efficient">Writing efficient code with LALOLib</h2>
+
+Follow <a href="lalolibefficient.html">these guidelines</a> to avoid common pitfalls and write more efficient code with LALOLib.
+
+<h2 id="extend">Extending LALOLib/LALOLab</h2>
+
+LALOLib and LALOLab can be easily extended with new toolboxes, as detailed <a href="toolboxes.html">here</a>.
+
+
+
+<h2 id="ml">Using the machine learning functions (ML.js)</h2>
+
+<p>
+<strong>ML.js</strong> extends LALOLib with machine learning functions. Many examples can be found in the API reference below and the online help of <a href="index.html">LALOLab</a>. 
+</p>
+<p>
+For supervised learning, predictive models are created with a <i>new</i> statement. For instance,
+<pre>
+model = new Classifier(SVM, params); 
+</pre>
+creates a new support vector machine (SVM) classifier with an optional argument (params) to set hyperparameters. Then, given an N-by-d matrix <i>X</i> of N observations in dimension d (N data instances described by d features each) and the corresponding vector of labels <i>Y</i>, the model can be trained with
+<pre>
+model.train(X, Y);
+</pre>
+To see the result, the <i>model.info()</i> function returns a formatted HTML text String listing all model parameters. After training, a model can be used to make predictions with 
+<pre>
+prediction = model.predict(Xtest);
+</pre>
+where <i>Xtest</i> can be either a matrix with multiple data instances or a single data vector. 
+</p>
+<p>
+Most machine learning models come with a self-tuning function, which automatically determines (or more precisely tries to determine) the best hyperparameters for training. This function can be used instead of the train() function as
+<pre>
+model.tune(X, Y); 
+</pre>
+</p>
+
+<h2 id="apiref">Available functions / API reference</h2>
+
+<p>
+Below is the list of functions provided by LALOLib. The help shows both the script-like LALOLab syntax and the corresponding javascript calls. Examples are mostly written for <a href="index.html">LALOLab</a> and should be executed by a <a href="#safer">lab.do() statement</a> in a javascript context. 
+</p>
+
+<div class="container">
+<div id="helpview">
+Select a topic on the left to see the help. 
+</div>
+<div id="helpcmds">
+<!--	<p class="helpsectiontitle">List of functions</p>-->
+	<div id="helpcmdsWelcome"></div>
+	<p class="helpsectiontitle" onclick="toggleHelp('Basics');">Linear algebra <label id="helptogglebtnBasics" class="helptogglebtn">+</label></p>
+	<div id="helpcmdsBasics" class="helpsection"></div>
+</div>
+</div>
+
+<script>
+var ExampleClipboard = new Array();
+__INLALOLIBHTMLPAGE = true;
+populateHelp();
+
+</script>
+
+
+<script>
+
+var lab = new Lalolab() ; // create a new Lalolab
+
+// show examples in <pre> 
+for ( var i = 1; i < 10; i++) {
+	if ( typeof(self["ex" + i ] ) == "function" ) {
+		var lines = self["ex" + i ].toString().split("\n");	
+		lines.splice(0,1);
+		lines.pop();		
+		document.getElementById("pre"+i).innerHTML = "Example " + i + ":\n" + lines.join("\n").split("<br>").join("&lt;br&gt;");
+	}	
+}
+
+function ex1 () {
+	var a = rand(3);
+	res1.innerHTML = "The norm of " + laloprint(transpose(a),true) + " is " + norm(a);
+}
+
+
+function ex2 () {
+	res2.innerHTML = "Computing...";
+	lab.do("X = rand(200,300)");	
+	lab.do("svd(X)", function ( result ) {
+		res2.innerHTML = "The singular values are " + result[0] + ", " + result[1] + "..."; 
+	});
+}
+
+function ex3 () {
+	var A = [[1,2],[3,4]];	// define a variable in the current scope
+	lab.load(A, "A", function (result) {  // load the variable in the lab
+		res3.innerHTML = "The matrix A = " + laloprint(result,true) + " has been loaded in the lab.<br>";
+	}); 
+	lab.do("n = norm(A)");	// do some computation in the background
+	lab.getObject("n", function ( result ) { // recover the value of a variable from the lab
+		res3.innerHTML += "The norm of A is stored in the lab variable n which equals " + result;
+	});		
+}
+
+var mylabs = new Array();
+function ex4 () {
+	var i;
+	res4.innerHTML = "";
+	for (i=0; i < 4; i++) {
+		res4.innerHTML += "Creating mylab #" + i + "...<br>";
+		mylabs[i] = new Lalolab("mylab #" + i); 
+	}
+	for (i=0; i < 4; i++) {
+		res4.innerHTML += "Computing in mylab #" + i + "...<br>";
+		mylabs[i].do("X = rand(200,300)");	
+		mylabs[i].do("svd(X)", function ( result, cmd, labid ) {
+			res4.innerHTML += "The singular values computed by " + labid + " are " + result[0] + ", " + result[1] + "...<br>"; 
+		}); 
+	}	
+}
+
+function ex5 () {
+	u = [1,-1,1];	// create vectors in global scope (declared without the 'var' keyword)
+	v = [1,2,3];
+	var u_dot_v  = lalo("u' * v");
+	res5.innerHTML = "The dot product between " + laloprint(transpose(u),true) + " and " + laloprint(transpose(v),true) + " is " + u_dot_v;
+}
+
+function ex6 () {
+	lab.import("test.lalo");
+	lab.do("sumsquares( [1;2;3] )", function (result ) {
+		res6.innerHTML = "Sum of squares function from 'test.lalo' yielded " + result; 
+	});	
+}
+
+function ex7 () {
+	lab.importjs("test.js");
+	lab.do("sumsquaresjs( [1,2,3] )", function (result ) {
+		res7.innerHTML = "Javascript sumsquaresjs() function from 'test.js' yielded " + result; 
+	});	
+}
+
+</script>
+
+<br><br><br><br><br><br><br><br>
+</body>
+</html>
+

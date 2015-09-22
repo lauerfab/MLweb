@@ -1,0 +1,3 @@
+function sumsquares ( x ) {
+	return (sum(x.*x))
+}

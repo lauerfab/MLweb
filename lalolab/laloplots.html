@@ -1,0 +1,769 @@
+<html>
+ <head>
+	<link rel="stylesheet" type="text/css" href="lalolab.css" >
+	<link rel="icon" type="image/x-icon" href="favicon.ico" />
+	<title>LALOLab plot</title>
+   <script type="application/x-javascript" src="plotlib.js"> </script>
+   <meta charset="UTF-8">
+	 <!-- <script type="text/x-mathjax-config">
+	MathJax.Hub.Config(mathjaxconfig);
+	</script>
+	<script type="text/javascript" src="../mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+	-->
+</head>
+<body> <!--  onload="window.opener.sendplotdata();"> -->
+
+<div id="header">
+<p class="booktitle">
+LALO<sup><i>Lab</i></sup>: the Linear ALgebra Online Lab
+</p>
+<p >
+<a class="topbuttons" style="text-decoration: none;" id="btnsave" download="plot.jpeg">Save plot</a>
+<a class="topbuttons" style="text-decoration: none;" id="btnsavecurrent" download="plot.jpeg" onclick="this.href=plotcanvas.toDataURL('image/jpeg');">Save current view</a>
+<button class="topbuttons" id="btnclose" onclick="window.close();">Close</button>
+</p>
+<hr class="header-hr">
+</div>
+
+<div style="height: 1px;">
+</div>
+<h4 id="plottitle">
+</h4>
+<div id="cont" class="container">
+	<div style="position:absolute;top:0;left:50px;"><div class="container">
+	<div id="outputplots"></div>
+	<label id="lblposition"></label>
+	<div id="plotlegend"></div>
+	<div id="legendtxt"></div>
+	</div></div>
+</div>
+<script>
+//////////////
+// Plots
+//////////////
+var legendwidth = 50;
+var originalminX = 0;
+var originalmaxX = 0;
+var originalminY = 0;
+var originalmaxY = 0;
+
+var MOVING = false;
+
+function plot( plotinfo ) {
+console.log(plotinfo);
+	var plotid = "plotcanvas";
+	var i;
+
+	outputplots.innerHTML += "<a onmousemove='mouseposition(event);' onmousedown='mousestartmove(event);' onmouseup='mousestopmove(event);' onmouseleave='mousestopmove(event);' ondblclick='zoomoriginal();'><canvas id='" +plotid + "'  width='500' height='500' class='plots'></canvas></a>"; 
+	// axiswise-zooms:
+	cont.innerHTML += "<button onclick='plot1.zoom(1.1,1);' class='topbuttons' style='position:absolute;top:550px;left:245px;width:40px;'>+</button>";
+	cont.innerHTML += "<button onclick='plot1.zoom(0.9,1);' class='topbuttons' style='position:absolute;top:550px;left:295px;width:40px;'>-</button>";
+	cont.innerHTML += "<button onclick='plot1.zoom(1,1.1);' class='topbuttons' style='position:absolute;top:220px;left:0px;width:40px;'>+</button>";
+	cont.innerHTML += "<button onclick='plot1.zoom(1,0.9);' class='topbuttons' style='position:absolute;top:270px;left:0px;width:40px;'>-</button>";			
+	/* to follow th emouse with the position
+	lblposition.style.position = "absolute";
+	lblposition.style.top = "0px";
+	lblposition.style.left = "0px";	
+	*/
+	
+	// prepare legend
+	var legendwidth = 50;
+	plotlegend.innerHTML += "<canvas id='legend'  width='" + legendwidth + "' height='500'></canvas>" ;
+	var ylegend = 20;
+	
+	// do plot
+
+	plot1 = new Plot(plotid) ;
+		
+	if ( plotinfo.minY && plotinfo.maxY ) {
+		plot1.view(plotinfo.minX, plotinfo.maxX, plotinfo.minY, plotinfo.maxY); 
+	}
+	else 
+		plot1.setScalePlot(plotinfo.minX, plotinfo.maxX, 200, plotinfo.scaleY); 
+	
+	
+	var colors = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,0];
+	
+	var p;
+	var color;
+	for (p = 0; p<plotinfo.data.length; p++) {
+		
+		var linestyle = true;
+		var pointstyle = true;
+		if ( typeof(plotinfo.styles[p]) == "string" ) {
+			if ( plotinfo.styles[p].indexOf(".") >= 0 ) {
+				linestyle = false;
+				plotinfo.styles[p] = plotinfo.styles[p].replace(".","");
+			}
+			if ( plotinfo.styles[p].indexOf("_") >= 0 ) {
+				pointstyle = false;
+				plotinfo.styles[p] = plotinfo.styles[p].replace("_","");
+			}
+			color = parseColor(plotinfo.styles[p]);
+		
+			if ( color < 0 )
+				color = colors.splice(0,1)[0];		// pick next unused color
+			else
+				colors.splice(colors.indexOf(color),1); // remove this color
+		}
+		else 
+			color = colors.splice(0,1)[0];	// pick next unused color
+		
+		if ( typeof(color) == "undefined")	// pick black if no next unused color
+			color = 0;
+	
+		for ( i=0; i < plotinfo.data[p][0].length; i++) {
+			if ( pointstyle )
+				plot1.addPoint(plotinfo.data[p][0][i],plotinfo.data[p][1][i], color);	
+			if ( linestyle && i < plotinfo.data[p][0].length-1 ) 
+				plot1.plot_line(plotinfo.data[p][0][i],plotinfo.data[p][1][i], plotinfo.data[p][0][i+1],plotinfo.data[p][1][i+1], color);				
+		}
+		
+		
+		/*
+		if (linestyle) {
+			if ( pointstyle ) 
+				var path = [plotinfo.data[p], color, 5, 1, false]; 
+			else 
+				var path = [plotinfo.data[p], color, 0, 1, false]; 
+			plot1.paths.push(path);
+		}
+		else {
+			for ( i=0; i < plotinfo.data[p].length; i++) {	
+				plot1.addPoint(plotinfo.data[p][i][0],plotinfo.data[p][i][1], color);	
+			}
+		}
+			*/
+		
+		// Legend
+		if ( plotinfo.legend[p] != "" ) {		
+			var ctx = legend.getContext("2d");
+			setcolor(ctx, color);
+			ctx.lineWidth = "3";
+			if ( pointstyle ) {
+				ctx.beginPath();
+				ctx.arc( legendwidth/2 , ylegend, 5, 0, 2 * Math.PI , true);
+				ctx.closePath();
+				ctx.fill();
+			}
+			if( linestyle) {
+				ctx.beginPath();
+				ctx.moveTo ( 0,ylegend);
+				ctx.lineTo (legendwidth, ylegend);
+				ctx.stroke();
+			}
+			ylegend += 20;
+			
+			legendtxt.innerHTML += plotinfo.legend[p] + "<br>";						
+		}
+	}
+	plot1.replot();
+	
+	// ZOOM	
+	originalminX = plotinfo.minX;
+	originalmaxX = plotinfo.maxX;
+	originalminY = plot1.minY;
+	originalmaxY = plot1.maxY;
+	
+	if(window.addEventListener)
+        plotcanvas.addEventListener('DOMMouseScroll', this.mousezoom, false);//firefox
+ 
+    //for IE/OPERA etc
+    plotcanvas.onmousewheel = this.mousezoom;
+	
+	
+	// for saving:
+	btnsave.href= plotcanvas.toDataURL("image/jpeg");
+}
+
+
+function colorplot( plotinfo ) {
+	
+	var plotid = "plotcanvas";
+
+	outputplots.innerHTML += "<a onmousemove='mouseposition(event);' onmousedown='mousestartmove(event);' onmouseup='mousestopmove(event);' onmouseleave='mousestopmove(event);' ondblclick='zoomoriginal();'><canvas id='" +plotid + "'  width='500' height='500' class='plots'></canvas></a>"; 
+	
+	plot1 = new ColorPlot(plotid) ;
+	plot1.setScale(plotinfo.minX, plotinfo.maxX, plotinfo.minY, plotinfo.maxY,plotinfo.minZ, plotinfo.maxZ); 
+	plot1.view(plotinfo.minX, plotinfo.maxX, plotinfo.minY, plotinfo.maxY); 	
+	
+	for (var i=0; i < plotinfo.x.length; i++)
+		plot1.addPoint(plotinfo.x[i],plotinfo.y[i],plotinfo.z[i]);
+	
+	plot1.replot();
+	
+	var legendwidth = 50;
+	plotlegend.innerHTML += plotinfo.maxZ.toFixed(3) + "<br><canvas id='legend'  width='" + legendwidth + "' height='500'></canvas><br>" + plotinfo.minZ.toFixed(3);
+	ctx = legend.getContext("2d");
+
+	var y;
+	for (var i=0; i< plot1.cmap.length;i++) {
+		y = Math.floor(i * legend.height / plot1.cmap.length);
+		ctx.fillStyle = "rgb(" + plot1.cmap[i][0] + "," + plot1.cmap[i][1] + "," + plot1.cmap[i][2] + ")";
+		ctx.fillRect( 0, legend.height-y, legendwidth , (legend.height / plot1.cmap.length) + 1) ;
+	}	
+	
+		
+	// ZOOM	
+	originalminX = plotinfo.minX;
+	originalmaxX = plotinfo.maxX;
+	originalminY = plot1.minY;
+	originalmaxY = plot1.maxY;
+	
+	if(window.addEventListener)
+        plotcanvas.addEventListener('DOMMouseScroll', this.mousezoom, false);//firefox
+ 
+    //for IE/OPERA etc
+    plotcanvas.onmousewheel = this.mousezoom;
+	
+	// for saving:
+	btnsave.href= plotcanvas.toDataURL("image/jpeg");
+}
+
+function plot2( plotinfo ) {
+	var plotid = "plotcanvas";
+	var i;
+
+	outputplots.innerHTML += "<a onmousemove='mouseposition2(event);' ondblclick='zoomoriginal();'><canvas id='" +plotid + "'  width='500' height='500' class='plots'></canvas></a>";
+
+	// prepare legend
+	var legendwidth = 50;
+	plotlegend.innerHTML += "<canvas id='legend'  width='" + legendwidth + "' height='500'></canvas>" ;
+	var ylegend = 20;
+	
+	// do plot
+
+	plot1 = new Plot2D(plotid) ;
+	plot1.minX1 = plotinfo.minX;
+	plot1.maxX1 = plotinfo.maxX;
+	plot1.minX2 = plotinfo.minY;
+	plot1.maxX2 = plotinfo.maxY;
+		
+	plot1.clear(); 
+	
+	var colors = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,0];
+	
+	var p;
+	var color;
+	for (p = 0; p<plotinfo.data.length; p++) {
+		
+		var linestyle = true;
+		var pointstyle = true;
+		if ( typeof(plotinfo.styles[p]) == "string" ) {
+			if ( plotinfo.styles[p].indexOf(".") >= 0 ) {
+				linestyle = false;
+				plotinfo.styles[p] = plotinfo.styles[p].replace(".","");
+			}
+			if ( plotinfo.styles[p].indexOf("_") >= 0 ) {
+				pointstyle = false;
+				plotinfo.styles[p] = plotinfo.styles[p].replace("_","");
+			}
+			color = parseColor(plotinfo.styles[p]);
+		
+			if ( color < 0 )
+				color = colors.splice(0,1)[0];		// pick next unused color
+			else
+				colors.splice(colors.indexOf(color),1); // remove this color
+		}
+		else 
+			color = colors.splice(0,1)[0];	// pick next unused color
+		
+		if ( typeof(color) == "undefined")	// pick black if no next unused color
+			color = 0;
+	
+
+		for ( i=0; i < plotinfo.data[p].length; i++) {
+			if ( pointstyle )
+				plot1.Xapp.push( [plotinfo.data[p][i][0],plotinfo.data[p][i][1] ] );
+				plot1.Yapp.push( color );	
+			if ( linestyle && i < plotinfo.data[p].length-1 ) 
+				plot1.plot_line(plotinfo.data[p][i][0],plotinfo.data[p][i][1], plotinfo.data[p][i+1][0],plotinfo.data[p][i+1][1], "", color, false, 3);				
+		}
+		
+		
+		/*
+		if (linestyle) {
+			if ( pointstyle ) 
+				var path = [plotinfo.data[p], color, 5, 1, false]; 
+			else 
+				var path = [plotinfo.data[p], color, 0, 1, false]; 
+			plot1.paths.push(path);
+		}
+		else {
+			for ( i=0; i < plotinfo.data[p].length; i++) {	
+				plot1.addPoint(plotinfo.data[p][i][0],plotinfo.data[p][i][1], color);	
+			}
+		}
+			*/
+		
+		// Legend
+		if ( plotinfo.legend[p] != "" ) {		
+			var ctx = legend.getContext("2d");
+			setcolor(ctx, color);
+			ctx.lineWidth = "3";
+			if ( pointstyle ) {
+				ctx.beginPath();
+				ctx.arc( legendwidth/2 , ylegend, 5, 0, 2 * Math.PI , true);
+				ctx.closePath();
+				ctx.fill();
+			}
+			if( linestyle) {
+				ctx.beginPath();
+				ctx.moveTo ( 0,ylegend);
+				ctx.lineTo (legendwidth, ylegend);
+				ctx.stroke();
+			}
+			ylegend += 20;
+			
+			legendtxt.innerHTML += plotinfo.legend[p] + "<br>";						
+		}
+	}
+	plot1.plot_data();
+	
+	// ZOOM	
+	originalminX = plotinfo.minX;
+	originalmaxX = plotinfo.maxX;
+	
+	if(window.addEventListener)
+        plotcanvas.addEventListener('DOMMouseScroll', this.mousezoom, false);//firefox
+ 
+    //for IE/OPERA etc
+    plotcanvas.onmousewheel = this.mousezoom;
+	
+	
+	// for saving:
+	btnsave.href= plotcanvas.toDataURL("image/jpeg");
+}
+
+// 3D plots
+function plot3( plotinfo ) {
+	var plotid = "plotcanvas3D";
+	var i;
+
+	outputplots.innerHTML += '<a onmousedown="plot3.mousedown(event);" onmouseup="plot3.mouseup(event);" onmousemove="plot3.mouserotation(event);"><canvas id="plotcanvas3D" width="500" height="500" class="plots" title="Hold down the mouse button to change the view and use the mousewheel to zoom in or out." >   </canvas></a>';
+	
+	// prepare legend
+	var legendwidth = 50;
+	plotlegend.innerHTML += "<canvas id='legend'  width='" + legendwidth + "' height='500'></canvas>" ;
+	var ylegend = 20;
+	
+	// do plot
+
+	plot3 = new Plot3D(plotid) ;
+	
+	plot3.cameraDistance = 30; 
+	plot3.angleX = Math.PI/10;	
+	plot3.angleZ = Math.PI/10;
+	
+	plot3.axisNameX1 = "x";
+	plot3.axisNameX2 = "y";		
+	plot3.axisNameX3 = "z";		
+		
+	
+	var colors = [1,2,3,4,5,6,7,8,9,10,0];
+	
+	var p;
+	var color;
+
+	for (p = 0; p<plotinfo.data.length; p++) {
+		
+		var linestyle = false;
+		var pointstyle = true;
+		if ( typeof(plotinfo.styles[p]) == "string" ) {
+			if ( plotinfo.styles[p].indexOf(".") >= 0 ) {
+				linestyle = false;
+				plotinfo.styles[p] = plotinfo.styles[p].replace(".","");
+			}
+			if ( plotinfo.styles[p].indexOf("_") >= 0 ) {
+				pointstyle = false;
+				plotinfo.styles[p] = plotinfo.styles[p].replace("_","");
+			}
+			color = parseColor(plotinfo.styles[p]);
+		
+			if ( color < 0 )
+				color = colors.splice(0,1)[0];		// pick next unused color
+			else
+				colors.splice(colors.indexOf(color),1); // remove this color
+		}
+		else 
+			color = color = colors.splice(0,1)[0];	// pick next unused color
+		
+		if ( typeof(color) == "undefined")	// pick black if no next unused color
+			color = 0;
+	
+		for ( i=0; i < plotinfo.data[p].length; i++) {
+			if ( pointstyle ) {
+				plot3.X.push( plotinfo.data[p][i] );
+				plot3.Y.push( color );	
+			}
+			if ( linestyle && i < plotinfo.data[p].length-1 ) 
+				plot3.plot_line(plotinfo.data[p][i], plotinfo.data[p][i+1], "", color);
+		}
+		
+		// Legend
+		if ( plotinfo.legend[p] != "" ) {		
+			var ctx = legend.getContext("2d");
+			setcolor(ctx, color);
+			ctx.lineWidth = "3";
+			if ( pointstyle ) {
+				ctx.beginPath();
+				ctx.arc( legendwidth/2 , ylegend, 5, 0, 2 * Math.PI , true);
+				ctx.closePath();
+				ctx.fill();
+			}
+			if( linestyle) {
+				ctx.beginPath();
+				ctx.moveTo ( 0,ylegend);
+				ctx.lineTo (legendwidth, ylegend);
+				ctx.stroke();
+			}
+			ylegend += 20;
+			
+			legendtxt.innerHTML += plotinfo.legend[p] + "<br>";						
+		}
+	}
+	plot3.computeRanges();
+	plot3.replot();
+
+		
+	// for saving:
+	btnsave.href= plotcanvas3D.toDataURL("image/jpeg");
+}
+
+
+
+var imageinfo;
+var pixelWidth;
+var pixelHeight;
+
+function image ( imagedata ) {
+	var i;
+	var plotid = "plotcanvas";
+	var width = 500; 
+	var height = 500; 	
+
+	var title = imagedata.title;
+	if(title) {
+		document.title = title;
+		plottitle.innerHTML += title;
+	}
+	else
+		document.title = "LALOLab image plot";
+
+	plottitle.innerHTML += "  ( " + imagedata.style[0] + " by " + imagedata.style[1] + " matrix )";
+
+	if ( imagedata.style[1] > width ) {
+		width = imagedata.style[1]; 
+		plotlegend.style.left = (width+60) +"px";
+	}
+	if ( imagedata.style[0] > height )
+	 	height = imagedata.style[0];
+		
+	pixelWidth = width / imagedata.style[1];
+	pixelHeight = height / imagedata.style[0];
+	
+	
+	
+	outputplots.innerHTML += "<a onmousemove='mouseimageposition(event);'><canvas id='" +plotid + "'  width='" + width + "' height='"+ height + "' class='imageplots'></canvas></a>"; 
+
+	var x;
+	var y;
+	var color;
+	
+
+  	if (plotcanvas.getContext) {
+		var ctx = plotcanvas.getContext("2d");
+
+		for ( i=0; i < imagedata.data.length ; i++) {
+			x = plotcanvas.width * imagedata.data[i][1];
+			y =  plotcanvas.height * imagedata.data[i][0] ;
+			color = imagedata.data[i][2];
+		
+			if ( color.length == 3)
+				ctx.fillStyle = "rgb(" + Math.floor(255*(1-color[0])) + "," + Math.floor(255*(1-color[1])) + "," + Math.floor(255*(1-color[2])) + ")";
+			else
+				ctx.fillStyle = "rgba(" + color[0] + "," + color[1] + "," + color[2] + "," + color[3] + ")";
+			
+			ctx.fillRect( x , y, pixelWidth +1,  pixelHeight +1); // +1 to avoid blank lines between pixels
+
+		}
+	}
+	
+	// add legend / colormap
+	var legendwidth = 50;
+	plotlegend.innerHTML += imagedata.style[2].toFixed(3) + "<br><canvas id='legend'  width='" + legendwidth + "' height='500'></canvas><br>" + imagedata.style[3].toFixed(3);
+	ctx = legend.getContext("2d");
+
+	if ( imagedata.cmap ) {
+		for ( i=0; i< 255;i++) {
+			y = Math.floor(i * legend.height / 255);
+			if ( i < 128 ) 
+				ctx.fillStyle = "rgba(0,0,255," + ((127-i)/127) + ")";
+			else if ( i == 128 ) 
+				ctx.fillStyle = "white";
+			else
+				ctx.fillStyle = "rgba(255,0,0," + ((i-128)/127) + ")";
+			ctx.fillRect( 0, y, legendwidth , (legend.height / 255) + 1) ;
+		}	
+	}	
+	else {	
+		for ( i=0; i< 255;i++) {
+			y = Math.floor(i * legend.height / 255);
+			ctx.fillStyle = "rgb(" + (255-i) + "," + (255-i) + "," + (255-i) + ")";
+			ctx.fillRect( 0, y, legendwidth , (legend.height / 255) + 1) ;
+		}	
+	}
+	
+	// Prepare mouseposition info
+	imageinfo = imagedata;
+	
+	// for saving: 
+	btnsave.href= plotcanvas.toDataURL("image/jpeg");
+}
+
+function colormap ( cmapdata ) {
+	var i;
+	var plotid = "plotcanvas";
+	var width = 500; 
+	var height = 500; 	
+
+	var title = cmapdata.title;
+	if(title) {
+		document.title = title;
+		plottitle.innerHTML += title;
+	}
+	else
+		document.title = "LALOLab image plot";
+
+	if ( cmapdata.style[1] > width ) {
+		width = cmapdata.style[1]; 
+		plotlegend.style.left = (width+60) +"px";
+	}
+	if ( cmapdata.style[0] > height )
+	 	height = cmapdata.style[0];
+		
+	pixelWidth = width / cmapdata.style[1];
+	pixelHeight = height / cmapdata.style[0];
+	
+	
+	
+	outputplots.innerHTML += "<a onmousemove='mouseimageposition(event);'><canvas id='" +plotid + "'  width='" + width + "' height='"+ height + "' class='imageplots'></canvas></a>"; 
+
+	var x;
+	var y;
+	var color;
+	
+
+  	if (plotcanvas.getContext) {
+		var ctx = plotcanvas.getContext("2d");
+
+		for ( i=0; i < cmapdata.data.length ; i++) {
+			x = plotcanvas.width * cmapdata.data[i][1];
+			y =  plotcanvas.height * ( 1 - cmapdata.data[i][0] );
+			color = cmapdata.data[i][2];
+		
+			ctx.fillStyle = "rgba(" + color[0] + "," + color[1] + "," + color[2] + "," + color[3] + ")";
+			
+			ctx.fillRect( x , y, pixelWidth +1,  pixelHeight +1); // +1 to avoid blank lines between pixels
+
+		}
+	}
+	
+	// add legend / colormap
+	var legendwidth = 50;
+	plotlegend.innerHTML += cmapdata.style[2].toFixed(3) + "<br><canvas id='legend'  width='" + legendwidth + "' height='500'></canvas><br>" + cmapdata.style[3].toFixed(3);
+	ctx = legend.getContext("2d");
+
+	for ( i=0; i< 255;i++) {
+		y = Math.floor(i * legend.height / 255);
+		if ( i < 128 ) 
+			ctx.fillStyle = "rgba(0,0,255," + ((127-i)/127) + ")";
+		else if ( i == 128 ) 
+			ctx.fillStyle = "white";
+		else
+			ctx.fillStyle = "rgba(255,0,0," + ((i-128)/127) + ")";
+		ctx.fillRect( 0, y, legendwidth , (legend.height / 255) + 1) ;
+	}	
+	
+	// Prepare mouseposition info
+	imageinfo = cmapdata;
+	
+	// for saving: 
+	btnsave.href= plotcanvas.toDataURL("image/jpeg");
+}
+
+function parseColor( str ) {
+	if ( typeof(str) == "undefined") 
+		return -1;
+		
+	var color;
+	switch( str ) {
+	case "k":
+	case "black":
+		color = 0;
+		break;
+	case "blue":
+	case "b":
+		color = 1;
+		break;
+	case "r":
+	case "red":
+		color = 2;
+		break;
+	case "g":
+	case "green":
+		color = 3;
+		break;
+	case "m":
+	case "magenta":
+		color = 4;
+		break;
+	case "y":
+	case "yellow":
+		color = 5;
+		break;
+	
+	default:
+		color = -1;
+		break;
+	}
+	return color;
+}
+
+function mousezoom ( e, delta ) {
+	if (!e) 
+    	e = window.event;
+ 	
+ 	e.preventDefault();
+	
+	if ( typeof(delta) == "undefined") {
+		var delta = 0;
+		
+		// normalize the delta
+		if (e.wheelDelta) {
+		     // IE and Opera
+		    delta = e.wheelDelta / 30;
+		} 
+		else if (e.detail) { 
+		    delta = -e.detail ;
+		}
+	} 
+	else {
+		if (e.button != 0 )
+			delta *= -1;
+	}
+
+
+	var rect = plotcanvas.getBoundingClientRect();
+	var x = e.clientX - rect.left;	// mouse coordinates relative to plot
+	var y = e.clientY - rect.top;
+	plot1.zoom(1+delta/30,1+delta/30, x, y);
+}
+function zoomoriginal() {
+	plot1.resetzoom(); //view(originalminX,originalmaxX,originalminY,originalmaxY);
+}
+
+function mousestartmove( e ) {
+	if ( e.button == 0 ) {
+		MOVING = true;
+
+		var rect = plotcanvas.getBoundingClientRect();
+		xprev = e.clientX - rect.left;	// mouse coordinates relative to plot
+		yprev = e.clientY - rect.top;
+
+	}
+	else {
+		MOVING = false;
+	}
+}
+function mousestopmove( e ) {
+	MOVING = false;
+}
+function mouseposition( e ) {
+
+	var rect = plotcanvas.getBoundingClientRect();
+
+	var xmouse = e.clientX - rect.left;	// mouse coordinates relative to plot
+	var ymouse = e.clientY - rect.top;
+
+	if ( MOVING ) {	
+		var dx = xmouse - xprev ;
+		var dy = ymouse - yprev;
+		if ( Math.abs( dx ) > 1 || Math.abs( dy ) > 1 ) {			
+			//plot1.view(plot1.minX+dx/plot1.scaleX,plot1.maxX+dx/plot1.scaleX, plot1.minY+dy/plot1.scaleY, plot1.maxY+dy/plot1.scaleY);
+			plot1.translate(dx, dy);
+		}
+		xprev = xmouse;
+		yprev = ymouse;
+		
+	}
+	else {		
+		var x = (xmouse + plot1.viewX) / plot1.scaleX + plot1.minX;
+		var y = (plot1.buffer.height  - ymouse - plot1.viewY ) / plot1.scaleY + plot1.minY;
+	
+		lblposition.innerHTML = "x = " + x.toFixed(3) + ", y = " + y.toFixed(3);
+	}
+	
+}
+function mouseposition2( e ) {
+
+	var rect = plotcanvas.getBoundingClientRect();
+
+	var xmouse = e.clientX - rect.left;	// mouse coordinates relative to plot
+	var ymouse = e.clientY - rect.top;
+
+	var x = xmouse / plot1.scaleX1 + plot1.minX1;
+	var y = (plotcanvas.height  - ymouse ) / plot1.scaleX2 + plot1.minX2; //+ this.minY;
+	
+	lblposition.innerHTML = "x = " + x.toFixed(3) + ", y = " + y.toFixed(3);
+	
+}
+function mouseimageposition( e ) {
+
+	var rect = plotcanvas.getBoundingClientRect();
+
+	var xmouse = e.clientX - rect.left;	// mouse coordinates relative to plot
+	var ymouse = e.clientY - rect.top;
+
+	var n = imageinfo.style[1];
+	var minX = imageinfo.style[2];	
+	var maxX = imageinfo.style[3];	
+	var i = Math.floor(ymouse / pixelHeight);
+	var j = Math.floor(xmouse / pixelWidth );
+	if ( j < n ) {
+		if ( imageinfo.data[i*n + j][2].length == 3)
+			var val = imageinfo.data[i*n + j][2][0]*(maxX - minX) + minX;
+		else
+			var val = imageinfo.data[i*n + j][2][3]*(maxX - minX)/2;
+		lblposition.innerHTML = "Matrix[ " + i + " ][ " + j + " ] = " + val.toFixed(3);
+	}
+}
+
+function parsePlotCmd ( cmd ) {
+	
+	var tmp = cmd.split(")");
+	tmp.pop();
+	var str = tmp.join(")");
+	var begin =str.indexOf("(") ;
+	return str.substr(begin+1);
+}
+
+function removeSpaces( str ) {
+	return str.split(" ").join("");
+}
+
+function printNumber ( x ) {
+	if ( x === undefined ) 
+		return "" + 0;// for sparse matrices
+		
+	var x_int = Math.floor(x);
+	if ( Math.abs( x - x_int ) < 1e-16 ) {
+		return "" + x_int;
+	} 
+	else
+		return x.toFixed( printPrecision );
+}
+</script>
+
+</body>
+</html>
