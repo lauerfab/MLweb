@@ -379,7 +379,6 @@ function kernel_default_parameter(kerneltype, dimension ) {
 function kernelMatrix( X , kerneltype, kernelpar, X2) {
 	var i;
 	var j;
-	var Kij;
 
 	if ( typeof(kerneltype) === 'undefined')
 		var kerneltype = "rbf"; 
@@ -423,7 +422,6 @@ function kernelMatrix( X , kerneltype, kernelpar, X2) {
 	else {		
 		// compute K(X, X2)		
 		var m = X.length;		
-		var tx = type(X); 
 		var t2 = type(X2);
 		if (t2 == "number" ) {
 			// X2 is a single data number:
@@ -433,10 +431,10 @@ function kernelMatrix( X , kerneltype, kernelpar, X2) {
 
 			var K = zeros(m);			
 			for (i = 0; i<m; i++) {		
-				K[i] = kernel(X[i], X2, kerneltype, kernelpar);				
+				K[i] = kerFunc(X[i], X2);
 			}
 		}
-		else if ( t2 == "vector" && tx == "matrix" && X.n >1 )  {
+		else if ( t2 == "vector" && tX == "matrix" && X.n >1 )  {
 			// X2 is a single data vector :
 			if ( kerneltype == "linear") {
 				return mul( X,X2); // this should be faster
@@ -444,10 +442,10 @@ function kernelMatrix( X , kerneltype, kernelpar, X2) {
 
 			var K = zeros(m);			
 			for (i = 0; i<m; i++) {		
-				K[i] = kernel(getrowref(X, i), X2, kerneltype, kernelpar);				
+				K[i] = kerFunc(X.row(i), X2);
 			}
-		}		
-		else if ( t2 == "vector" && tx == "vector" )  {
+		}
+		else if ( t2 == "vector" && tX == "vector" )  {
 			// X2 is a vector of multiple data instances in dim 1
 			if ( kerneltype == "linear") {
 				return outerprodVectors( X,X2); // this should be faster
@@ -457,11 +455,10 @@ function kernelMatrix( X , kerneltype, kernelpar, X2) {
 			var ki = 0;
 			for (i = 0; i<m; i++) {		
 				for (j = 0; j < n; j++) {
-					K.val[ki + j] = kernel(X[i], X2[j], kerneltype, kernelpar);					
+					K.val[ki + j] = kerFunc(X[i], X2[j]);
 				}		
-				ki += n		
+				ki += n	;
 			}
-
 		}
 		else {
 			// X2 is a matrix
@@ -471,13 +468,17 @@ function kernelMatrix( X , kerneltype, kernelpar, X2) {
 
 			var n = X2.length;
 			var K = zeros(m,n);
+			var X2j = new Array(n);
+			for (j = 0; j < n; j++) {
+				X2j[j] = X2.row(j);
+			}
 			var ki = 0;
 			for (i = 0; i<m; i++) {		
-				var Xi = getrowref(X, i);
+				var Xi = X.row(i);
 				for (j = 0; j < n; j++) {
-					K.val[ki + j] = kernel(Xi, getrowref(X2, j), kerneltype, kernelpar);					
+					K.val[ki + j] = kerFunc(Xi, X2j[j]);
 				}		
-				ki += n		
+				ki += n	;
 			}
 		}		
 		

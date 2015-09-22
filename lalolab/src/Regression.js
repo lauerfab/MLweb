@@ -545,7 +545,7 @@ KernelRidgeRegression.prototype.predict = function (X) {
 	// Prediction function f(x) = sum_i alpha_i K(x_i, x)
 	
 	var K = kernelMatrix(this.X, this.kernel, this.kernelpar, X);
-	var y = mul(K, this.alpha);
+	var y = transpose(mul(transposeVector(this.alpha), K));	
 
 	return y;
 }
