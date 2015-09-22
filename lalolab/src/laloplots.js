@@ -484,14 +484,22 @@ Plot.prototype.plotAxis = function() {
 		ctx.closePath();
 		ctx.stroke();
 		
-		// ticks
-		for (var y = Math.ceil(this.minY); y < this.maxY; y++ ) {
-			var yy = canvas.height - (y -this.minY) * this.scaleY;
+		// ticks		 
+		var tickspace = Math.ceil( (this.maxY - this.minY) / 10);
+		for (var y = -tickspace; y>this.minY; y -= tickspace ) {
+			var yy = (y - this.minY) * this.scaleY ;
 			ctx.beginPath();
-			ctx.moveTo(x0-5,yy);
-			ctx.lineTo(x0+5,yy);
+			ctx.moveTo(x0 -5 ,canvas.height-yy );
+			ctx.lineTo(x0 + 5, canvas.height-yy );
 			ctx.stroke();		
 		}
+		for (var y = tickspace; y<this.maxY; y += tickspace ) {
+			var yy = (y - this.minY) * this.scaleY ;
+			ctx.beginPath();
+			ctx.moveTo(x0 -5 , canvas.height-yy );
+			ctx.lineTo(x0 + 5, canvas.height- yy );
+			ctx.stroke();	
+		}		
 	}
   }
 }

@@ -5,7 +5,7 @@ var printPrecision = 3; // number of digits to print
 
 var LALOLibPlotsIndex = 0;
 var LALOLibPlots = new Array();
-
+var LALOLABPLOTMOVING = false;
 
 //////////////////////////
 //// Cross-browser compatibility
@@ -191,14 +191,14 @@ function plot(multiargs) {
 
 			if ( p + 1 < arguments.length && type ( arguments[p+1] ) == "vector" ) {
 				// classic (x,y) arguments
-				x = dense(arguments[p]);
-				y = dense(arguments[p+1]);
+				x = arguments[p];
+				y = arguments[p+1];
 			
 				p++;
 			}
 			else {
 				// only y provided => x = 0:n
-				y = dense(arguments[p]);
+				y = arguments[p];
 				x = range(y.length);
 			}
 		}
@@ -263,10 +263,11 @@ function plot(multiargs) {
 			p++;
 		}	
 
-		// Add the curve (x,y, style) to plot
-		data[c] = new Array();
+		// Add the curve (x,y, style) to plot		
+		data[c] = [new Array(x.length), new Array(x.length)];		
 		for ( i=0; i < x.length; i++) {
-			data[c][i] = [x[i], y[i]]; 
+			data[c][0][i] = x[i];
+			data[c][1][i] = y[i]; 
 			if ( x[i] < minX )
 				minX = x[i];
 			if(x[i] > maxX ) 
@@ -322,7 +323,7 @@ function plot(multiargs) {
 		LALOLibPlots[LALOLibPlotsIndex].view(plotinfo.minX, plotinfo.maxX, plotinfo.minY, plotinfo.maxY); 
 	}
 	
-	var colors = [1,2,3,4,5,0];
+	var colors = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,0];
 	
 	var p;
 	var color;
@@ -515,9 +516,9 @@ function plot3(multiargs) {
 
 			if ( p + 2 < arguments.length && type ( arguments[p+1] ) == "vector" && type ( arguments[p+2] ) == "vector" ) {
 				// classic (x,y,z) arguments
-				x = dense(arguments[p]);
-				y = dense(arguments[p+1]);
-				z = dense(arguments[p+2]);				
+				x = arguments[p];
+				y = arguments[p+1];
+				z = arguments[p+2];				
 				
 				p += 2;
 			}
