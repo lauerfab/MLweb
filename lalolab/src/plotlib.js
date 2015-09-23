@@ -27,30 +27,11 @@
 */
 
 
-//////////////////////////////
+////////////////////////////
 // Cross-browsers compatibility:
 /*
 	Chrome : turn off hardware acceleration to get mousemove events!
 */
-
-/* Array.fill : 
-if (!Array.prototype.fill) {
-  Array.prototype.fill = function(value) {
-  	if (this == null) {
-      throw new TypeError("this is null or not defined");
-    }
-    if ( typeof( value ) == "object") 
-    	throw new TypeError("Array.fill:: the value is not valid => only simple values allowed");
-    
-    
-    var O = Object(this);
-    for ( var i= 0; i < this.length; i++) {
-    	O[i] = eval(value);
-    }
-    return O;	
-  }
-
-}*/
 
 /////// BOOK TOOLS /////////
 
