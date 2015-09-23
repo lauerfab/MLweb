@@ -1,0 +1,17 @@
+# Exclude built libraries
+ml.js
+lalolib.js
+laloliblab.js
+lalohelp.js
+plotlib.js
+!src/plotlib.js
+
+# Excludes examples
+examples/
+
+# Exclude downloaded dependencies
+jszip.min.js
+glpk.min.js
+
+# Exclude chromium logs
+*.log
