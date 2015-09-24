@@ -203,6 +203,14 @@ Regression.prototype.info = function () {
 	str += "}";
 	return str;
 }
+/* Utility function 
+	return true if x contains a single data instance
+			false otherwise
+*/
+Regression.prototype.single_x = function ( x ) {
+	var tx = type(x);
+	return (tx == "number" || ( this.dim_input > 1 && (tx == "vector" || tx == "spvector" ) ) ) ;
+}
 
 //////////////////////////////////////
 ////// LeastSquares
@@ -531,13 +539,12 @@ KernelRidgeRegression.prototype.train = function (X, y) {
 	// Training function: should set trainable parameters of the model
 	//					  and return the training error.
 	
-	this.K = kernelMatrix(X, this.kernel, this.kernelpar); // store K for further tuning use
-	this.X = matrixCopy(X); // also store X to compute predictions
-
+	//this.K = kernelMatrix(X, this.kernel, this.kernelpar); // store K for further tuning use
+		
 	// alpha = (K+lambda I)^-1 y
 	
 	//var Kreg = add(this.K, mul(this.lambda, eye(this.K.length)));
-	var Kreg = matrixCopy(this.K);
+	var Kreg = kernelMatrix(X, this.kernel, this.kernelpar);
 	var kii = 0;
 	for ( var i=0; i < Kreg.length; i++) {
 		Kreg.val[kii] += this.lambda; 
@@ -553,6 +560,15 @@ KernelRidgeRegression.prototype.train = function (X, y) {
 			this.alpha = solvecg(Kreg, y);		// dense conjugate gradient solver
 	}
 	
+	// Set kernel function
+	this.kernelFunc = kernelFunction ( this.kernel, this.kernelpar);
+	// and input dim
+	this.dim_input = size(X, 2);
+	if ( this.dim_input == 1 )
+		this.X = mat([X]); // make it a 1-column matrix
+	else 
+		this.X = matrixCopy(X);
+		
 	/*	
 	// compute training error:
 	var yhat = mulMatrixVector(this.K, this.alpha);
@@ -577,6 +593,9 @@ KernelRidgeRegression.prototype.tune = function (X, y, Xv, yv) {
 		}
 	}
 	
+	this.dim_input = size(X,2);
+	const tX = type(X);
+		
 	var K;
 	var spK;
 	var sparseK = true; // is K sparse?
@@ -609,8 +628,11 @@ KernelRidgeRegression.prototype.tune = function (X, y, Xv, yv) {
 
 	if ( arguments.length == 4 ) {
 		// validation set (Xv, yv)
-		this.X = X;
-		
+		if ( tX == "vector" )
+			this.X = mat([X]);
+		else 
+			this.X = X;
+			
 		// grid of ( kernelpar, lambda) values
 		var validationErrors = zeros(this.parameterGrid.kernelpar.length, this.parameterGrid.C.length);
 		var minValidError = Infinity;
@@ -707,7 +729,11 @@ KernelRidgeRegression.prototype.tune = function (X, y, Xv, yv) {
 			Xtr =  get(X, tridx, []);
 			Ytr = get(y, tridx);
 
-			this.X = Xtr;
+			if ( tX == "vector" )
+				this.X = mat([Xtr]);
+			else 
+				this.X = Xtr;
+		
 			
 			// grid of ( kernelpar, lambda) values
 			
@@ -720,6 +746,8 @@ KernelRidgeRegression.prototype.tune = function (X, y, Xv, yv) {
 					// Fast update of kernel matrix
 					K = kernelMatrixUpdate( K,  this.kernel, this.kernelpar, this.parameterGrid.kernelpar[kp-1]  );
 				}
+				this.kernelFunc = kernelFunction (this.kernel, this.kernelpar);
+				
 				var sparseK =  (norm0(K) < 0.4 * K.length * K.length );
 				if ( sparseK ) 
 					spK = sparse(K);
@@ -767,7 +795,11 @@ KernelRidgeRegression.prototype.tune = function (X, y, Xv, yv) {
 		Xte = get(X, get(perm, range(fold * foldsize, N)), []);
 		Yte = get(y, get(perm, range(fold * foldsize, N)) );
 		
-		this.X = Xtr;
+		if ( tX == "vector" )
+			this.X = mat([Xtr]);
+		else 
+			this.X = Xtr;
+		
 		
 		// grid of ( kernelpar, lambda) values
 		
@@ -780,6 +812,8 @@ KernelRidgeRegression.prototype.tune = function (X, y, Xv, yv) {
 				// Fast update of kernel matrix
 				K = kernelMatrixUpdate( K,  this.kernel, this.kernelpar, this.parameterGrid.kernelpar[kp-1]  );
 			}
+			this.kernelFunc = kernelFunction (this.kernel, this.kernelpar);
+						
 			var sparseK =  (norm0(K) < 0.4 * K.length * K.length );
 			if ( sparseK ) 
 				spK = sparse(K);
@@ -849,10 +883,36 @@ KernelRidgeRegression.prototype.tune = function (X, y, Xv, yv) {
 
 KernelRidgeRegression.prototype.predict = function (X) {
 	// Prediction function f(x) = sum_i alpha_i K(x_i, x)
-	
+
+	/*	This works, but we do not need to store K
 	var K = kernelMatrix(this.X, this.kernel, this.kernelpar, X);
 	var y = transpose(mul(transposeVector(this.alpha), K));	
-
+	*/ 
+	var i,j;
+	
+	if ( this.single_x( x ) ) {
+		if ( this.dim_input == 1 ) 
+			var xvector = [x];
+		else
+			var xvector = x;
+		var y = 0;
+		for ( j=0; j < this.alpha.length; j++ )
+			y += this.alpha[j] * this.kernelFunc(this.X.row(j), xvector);		
+	}
+	else {
+		var y = zeros(X.length);
+		for ( j=0; j < this.alpha.length; j++ ) {
+			var Xj = this.X.row(j); 
+			var aj = this.alpha[j];
+			for ( i=0; i < X.length; i++ ) {
+				if ( this.dim_input == 1 )
+					var xvector = [X[i]];
+				else
+					var xvector = X.row(i);
+				y[i] += aj * this.kernelFunc(Xj, xvector);		
+			}
+		}
+	}
 	return y;
 }
 
