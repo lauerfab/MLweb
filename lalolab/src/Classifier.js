@@ -1177,7 +1177,7 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 	
 	// Set the kernelpar range with the dimension
 	if ( this.kernel == "rbf" ) {
-		saveKpGrid = zeros(this.parameterGrid.kernelpar.length);
+		var saveKpGrid = zeros(this.parameterGrid.kernelpar.length);
 		for ( var kp = 0; kp < this.parameterGrid.kernelpar.length ; kp ++) {
 			saveKpGrid[kp] = this.parameterGrid.kernelpar[kp];
 			this.parameterGrid.kernelpar[kp] *= Math.sqrt( X.n ); 
@@ -1235,7 +1235,7 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 			}
 			this.kernelpar = bestkernelpar;
 			this.C = bestC;
-			this.train(mat([X,Xv]), mat([labels,labelsv]) ); // retrain with best values and all data
+			this.train(mat([X,Xv], true), mat([labels,labelsv], true) ); // retrain with best values and all data
 		}				
 	}
 	else {

@@ -47,11 +47,13 @@ var mathjaxconfig = {
 	  E: "\\mathbb{E}",		  		
 	  H: "\\mathcal{H}",  		  
 	  F: "\\mathcal{F}",  		  		  
+	  G: "\\mathcal{G}",  
 	  g: ["\\boldsymbol{#1}",1],
 	  I: ["\\boldsymbol{1}_{#1}",1],
 	  inner: ["\\left\\langle #1, #2 \\right\\rangle",2],
 	  sign: "\\mbox{sign}",
 	  VC: "\\mbox{VC-dim}",
+	  fat: "\\mbox{fat}",	  
 	  drond: ["\\frac{\\partial #1}{\\partial #2}", 2]
 	}
   }

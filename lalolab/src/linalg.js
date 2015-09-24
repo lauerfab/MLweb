@@ -4013,7 +4013,7 @@ function norm0( A , sumalongdimension, epsilonarg ) {
 function norm0Vector( x, epsilon ) {
 	const n = x.length;
 	var res = 0;	
-	for (i=0; i < n; i++)
+	for (var i=0; i < n; i++)
 		if ( Math.abs(x[i]) > epsilon )
 			res++;
 	return res;

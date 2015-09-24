@@ -502,7 +502,29 @@ KernelRidgeRegression.prototype.construct = function ( params ) {
 	if ( params) {
 		for (i in params)
 			this[i] = params[i]; 
-	}			
+	}	
+	
+	
+	// Parameter grid for automatic tuning:
+	switch (this.kernel) {
+		case "gaussian":
+		case "Gaussian":
+		case "RBF":
+		case "rbf": 
+			// use multiples powers of 1/sqrt(2) for sigma => efficient kernel updates by squaring
+			this.parameterGrid = { "kernelpar": pow(1/Math.sqrt(2), range(0,10)), "lambda" : [ 0.01, 0.1, 1, 5, 10] };
+			break;
+			
+		case "poly":
+			this.parameterGrid = { "kernelpar": [3,5,7,9] , "lambda" : [0.1, 1, 5, 10]  };
+			break;
+		case "polyh":
+			this.parameterGrid = { "kernelpar": [3,5,7,9] , "lambda" : [0.1, 1, 5, 10] };
+			break;
+		default:
+			this.parameterGrid = undefined; 
+			break;
+	}		
 }
 
 KernelRidgeRegression.prototype.train = function (X, y) {
@@ -525,7 +547,7 @@ KernelRidgeRegression.prototype.train = function (X, y) {
 	if ( y.length <= 500 )
 		this.alpha = solve(Kreg, y);		// standard QR solver
 	else {
-		if ( norm0(K) < 0.4 * y.length * y.length )
+		if ( norm0(Kreg) < 0.4 * y.length * y.length )
 			this.alpha = spsolvecg(sparse(Kreg), y);	// sparse conjugate gradient solver
 		else
 			this.alpha = solvecg(Kreg, y);		// dense conjugate gradient solver
@@ -539,6 +561,290 @@ KernelRidgeRegression.prototype.train = function (X, y) {
 	return dot(error,error) / y.length;
 	*/
 	return this;
+}
+
+KernelRidgeRegression.prototype.tune = function (X, y, Xv, yv) {
+	// Use fast kernel matrix updates to tune kernel parameter
+	// For cv: loop over kernel parameter for each fold to update K efficiently
+	
+	
+	// Set the kernelpar range with the dimension
+	if ( this.kernel == "rbf" && size(X,2) > 1 ) {
+		var saveKpGrid = zeros(this.parameterGrid.kernelpar.length);
+		for ( var kp = 0; kp < this.parameterGrid.kernelpar.length ; kp ++) {
+			saveKpGrid[kp] = this.parameterGrid.kernelpar[kp];
+			this.parameterGrid.kernelpar[kp] *= Math.sqrt( X.n ); 
+		}
+	}
+	
+	var K;
+	var spK;
+	var sparseK = true; // is K sparse?
+	
+	var addDiag = function ( value ) {
+		// add scalar value on diagonal of K
+		var kii = 0;
+		for ( var i=0; i < K.length; i++) {
+			K.val[kii] += value; 
+			kii += K.length + 1;
+		}
+	}
+	var spaddDiag = function ( value ) {
+		// add scalar value on diagonal of sparse K
+		for ( var i=0; i < spK.length; i++) {
+			var j = spK.rows[i]; 
+			var e = spK.rows[i+1]; 			
+			while ( j < e && spK.cols[j] != i )
+				j++;
+			if ( j < e ) 
+				spK.val[j] += value; 
+			else {
+				// error: this only works if no zero lies on the diagonal of K
+				sparseK = false; 
+				addDiag(value); 
+				return;
+			}
+		}
+	}
+
+	if ( arguments.length == 4 ) {
+		// validation set (Xv, yv)
+		this.X = X;
+		
+		// grid of ( kernelpar, lambda) values
+		var validationErrors = zeros(this.parameterGrid.kernelpar.length, this.parameterGrid.C.length);
+		var minValidError = Infinity;
+		
+		var bestkernelpar;
+		var bestlambda;
+		
+		K = kernelMatrix( X , this.kernel, this.parameterGrid.kernelpar[0] ); 
+
+		// Test all values of kernel par
+		for ( var kp = 0; kp < this.parameterGrid.kernelpar.length; kp++) {
+			this.kernelpar = this.parameterGrid.kernelpar[kp];
+			if ( kp > 0 ) {
+				// Fast update of kernel matrix
+				K = kernelMatrixUpdate( K,  this.kernel, this.kernelpar, this.parameterGrid.kernelpar[kp-1]  );
+			}
+			sparseK = (norm0(K) < 0.4 * y.length * y.length );
+			if ( sparseK ) 
+				spK = sparse(K);
+			
+			// Test all values of lambda for the same kernel par
+			for ( var c = 0; c < this.parameterGrid.lambda.length; c++) {								
+				this.lambda = this.parameterGrid.lambda[c];
+				
+				// K = K + lambda I
+				if ( sparseK ) {
+					if ( c == 0 ) 
+						spaddDiag(this.lambda);
+					else
+						spaddDiag(this.lambda - this.parameterGrid.lambda[c-1] );
+				}
+				else {
+					if ( c == 0 ) 
+						addDiag(this.lambda);
+					else 
+						addDiag(this.lambda - this.parameterGrid.lambda[c-1] ); 
+				}
+
+				// Train model
+				if ( y.length <= 500 )
+					this.alpha = solve(K, y);		// standard QR solver
+				else {
+					if ( sparseK )
+						this.alpha = spsolvecg(spK, y);	// sparse conjugate gradient solver
+					else
+						this.alpha = solvecg(K, y);		// dense conjugate gradient solver
+				}
+				
+				validationErrors.set(kp,c, this.test(Xv,yv) );
+				if ( validationErrors.get(kp,c) < minValidError ) {
+					minValidError = validationErrors.get(kp,c);
+					bestkernelpar = this.kernelpar;
+					bestlambda = this.lambda;
+				}
+				
+				// Recover original K = K - lambda I  for subsequent kernel matrix update
+				if ( !sparseK && kp < this.parameterGrid.kernelpar.length - 1 ) 
+					addDiag( -this.lambda );
+			}
+		}
+		this.kernelpar = bestkernelpar;
+		this.lambda = bestlambda;
+		this.train(mat([X,Xv],true), mat([y,yv], true) ); // retrain with best values and all data
+	}
+	else {
+		
+		// 5-fold Cross validation
+		const nFolds = 5;
+	
+		const N = y.length;
+		const foldsize = Math.floor(N / nFolds);
+	
+		// Random permutation of the data set
+		var perm = randperm(N);
+	
+		// Start CV
+		var validationErrors = zeros(this.parameterGrid.kernelpar.length,this.parameterGrid.lambda.length);
+		
+	
+		var Xtr, Ytr, Xte, Yte;
+		var i;
+		var fold;
+		for ( fold = 0; fold < nFolds - 1; fold++) {
+			console.log("fold " + fold);
+			Xte = get(X, get(perm, range(fold * foldsize, (fold+1)*foldsize)), []);
+			Yte = get(y, get(perm, range(fold * foldsize, (fold+1)*foldsize)) );
+		
+			var tridx = new Array();
+			for (i=0; i < fold*foldsize; i++)
+				tridx.push(perm[i]);
+			for (i=(fold+1)*foldsize; i < N; i++)
+				tridx.push(perm[i]);
+		
+			Xtr =  get(X, tridx, []);
+			Ytr = get(y, tridx);
+
+			this.X = Xtr;
+			
+			// grid of ( kernelpar, lambda) values
+			
+			K = kernelMatrix( Xtr , this.kernel, this.parameterGrid.kernelpar[0] ); 
+
+			// Test all values of kernel par
+			for ( var kp = 0; kp < this.parameterGrid.kernelpar.length; kp++) {
+				this.kernelpar = this.parameterGrid.kernelpar[kp];
+				if ( kp > 0 ) {
+					// Fast update of kernel matrix
+					K = kernelMatrixUpdate( K,  this.kernel, this.kernelpar, this.parameterGrid.kernelpar[kp-1]  );
+				}
+				var sparseK =  (norm0(K) < 0.4 * K.length * K.length );
+				if ( sparseK ) 
+					spK = sparse(K);
+			
+				// Test all values of lambda for the same kernel par
+				for ( var c = 0; c < this.parameterGrid.lambda.length; c++) {								
+					this.lambda = this.parameterGrid.lambda[c];
+				
+					// K = K + lambda I
+					if ( sparseK ) {
+						if ( c == 0 ) 
+							spaddDiag(this.lambda);
+						else 
+							spaddDiag(this.lambda - this.parameterGrid.lambda[c-1] ); 
+					}
+					else {
+						if ( c == 0 ) 
+							addDiag(this.lambda);
+						else 
+							addDiag(this.lambda - this.parameterGrid.lambda[c-1] ); 
+					}
+
+					// Train model
+					if ( Ytr.length <= 500 )
+						this.alpha = solve(K, Ytr);		// standard QR solver
+					else {
+						if ( sparseK )
+							this.alpha = spsolvecg(spK, Ytr);	// sparse conjugate gradient solver
+						else
+							this.alpha = solvecg(K, Ytr);		// dense conjugate gradient solver
+					}
+				
+					validationErrors.val[kp * this.parameterGrid.lambda.length + c] += this.test(Xte,Yte) ;
+					
+					// Recover original K = K - lambda I  for subsequent kernel matrix update
+					if ( !sparseK && kp < this.parameterGrid.kernelpar.length - 1 ) 
+						addDiag( -this.lambda );
+				}
+			}
+		}
+		// last fold:
+		console.log("fold " + fold);		
+		Xtr = get(X, get(perm, range(0, fold * foldsize)), []);
+		Ytr = get(y, get(perm, range(0, fold * foldsize ) ) ); 
+		Xte = get(X, get(perm, range(fold * foldsize, N)), []);
+		Yte = get(y, get(perm, range(fold * foldsize, N)) );
+		
+		this.X = Xtr;
+		
+		// grid of ( kernelpar, lambda) values
+		
+		K = kernelMatrix( Xtr , this.kernel, this.parameterGrid.kernelpar[0] ); 
+
+		// Test all values of kernel par
+		for ( var kp = 0; kp < this.parameterGrid.kernelpar.length; kp++) {
+			this.kernelpar = this.parameterGrid.kernelpar[kp];
+			if ( kp > 0 ) {
+				// Fast update of kernel matrix
+				K = kernelMatrixUpdate( K,  this.kernel, this.kernelpar, this.parameterGrid.kernelpar[kp-1]  );
+			}
+			var sparseK =  (norm0(K) < 0.4 * K.length * K.length );
+			if ( sparseK ) 
+				spK = sparse(K);
+		
+			// Test all values of lambda for the same kernel par
+			for ( var c = 0; c < this.parameterGrid.lambda.length; c++) {								
+				this.lambda = this.parameterGrid.lambda[c];
+			
+				// K = K + lambda I
+				if ( sparseK ) {
+					if ( c == 0 ) 
+						spaddDiag(this.lambda);
+					else 
+						spaddDiag(this.lambda - this.parameterGrid.lambda[c-1] ); 
+				}
+				else {
+					if ( c == 0 ) 
+						addDiag(this.lambda);
+					else 
+						addDiag(this.lambda - this.parameterGrid.lambda[c-1] ); 
+				}
+
+				// Train model
+				if ( Ytr.length <= 500 )
+					this.alpha = solve(K, Ytr);		// standard QR solver
+				else {
+					if ( sparseK )
+						this.alpha = spsolvecg(spK, Ytr);	// sparse conjugate gradient solver
+					else
+						this.alpha = solvecg(K, Ytr);		// dense conjugate gradient solver
+				}
+			
+				validationErrors.val[kp * this.parameterGrid.lambda.length + c] += this.test(Xte,Yte) ;
+				
+				// Recover original K = K - lambda I  for subsequent kernel matrix update
+				if ( !sparseK && kp < this.parameterGrid.kernelpar.length - 1 ) 
+					addDiag( -this.lambda );
+			}
+		}		
+	
+		// Compute Kfold errors and find best parameters 
+		var minValidError = Infinity;
+		var bestlambda;
+		var bestkernelpar;
+		
+		// grid of ( kernelpar, lambda) values
+		for ( var kp = 0; kp < this.parameterGrid.kernelpar.length; kp++) {
+			for ( var c = 0; c < this.parameterGrid.lambda.length; c++) {
+				validationErrors.val[kp * this.parameterGrid.lambda.length + c] /= nFolds;				
+				if(validationErrors.val[kp * this.parameterGrid.lambda.length + c] < minValidError ) {
+					minValidError = validationErrors.val[kp * this.parameterGrid.lambda.length + c]; 
+					bestlambda = this.parameterGrid.lambda[c];
+					bestkernelpar = this.parameterGrid.kernelpar[kp];
+				}
+			}
+		}
+		this.lambda = bestlambda;	
+		this.kernelpar = bestkernelpar;	
+	
+		// Retrain on all data
+		this.train(X, y);		
+	}
+	
+	this.validationError = minValidError; 
+	return {error: minValidError, validationErrors: validationErrors}; 
 }
 
 KernelRidgeRegression.prototype.predict = function (X) {
