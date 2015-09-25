@@ -15,3 +15,6 @@ glpk.min.js
 
 # Exclude chromium logs
 *.log
+
+# Exclude experimental stuff
+src/experimental/

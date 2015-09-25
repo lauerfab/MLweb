@@ -2020,12 +2020,17 @@ SVM.prototype.predictscoreBinary = function( x , alpha, SVindexes, SV, SVlabels,
 		if (  this.kernel =="linear" && w)
 			output = add( mul(x, w) , b);
 		else {
+			// Cache SVs
+			var SVs = new Array(SVindexes.length);
+			for ( j=0; j < SVindexes.length; j++) 
+				SVs[j] = SV.row(j);
+		
 			output = zeros(x.length);
 			for ( i=0; i < x.length; i++) {
 				output[i] = b;
 				var xi = x.row(i);
 				for ( j=0; j < SVindexes.length; j++) {
-					output[i] += alpha[SVindexes[j]] * SVlabels[j] * this.kernelFunc(SV.row(j), xi ); 
+					output[i] += alpha[SVindexes[j]] * SVlabels[j] * this.kernelFunc(SVs[j], xi ); 
 				}
 			}
 		}

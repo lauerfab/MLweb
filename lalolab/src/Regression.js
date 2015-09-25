@@ -1248,7 +1248,12 @@ SVR.prototype.train = function (X, y) {
 	this.b = b;
 	this.w = w;				
 	
-	
+	// Set kernel function
+	if ( this.dim_input > 1 )
+		this.kernelFunc = this.kernelcache.kernelFunc;
+	else
+		this.kernelFunc = kernelFunction(this.kernel, this.kernelpar, "number"); // for scalar input
+		
 	// and return training error rate:
 	// return this.test(X, y); // XXX use kernel cache instead!! 
 	return this;
@@ -1261,46 +1266,44 @@ SVR.prototype.predict = function ( x ) {
 	var j;
 	var output;
 
-	const tx = type(x);
-	
-	if ( (tx == "vector" && this.dim_input > 1) || (tx == "number" && this.dim_input == 1) ) {
-	
+	if ( this.kernel =="linear" && this.w)
+		return add( mul(x, this.w) , this.b);
+		
+	if ( this.single_x(x) ) {	
 		output = this.b;
-		if ( this.kernel =="linear" && this.w)
-			output += mul(this.w, x);
+
+		if ( this.dim_input > 1 ) {
+			for ( j=0; j < this.SVindexes.length; j++) 
+				output += this.alpha[this.SVindexes[j]] * this.kernelFunc( this.SV.row(j), x);
+		}
 		else {
-			for ( j=0; j < this.SVindexes.length; j++) {
-				output += this.alpha[this.SVindexes[j]] * kernel ( this.SV[j], x, this.kernel, this.kernelpar);
-			}
+			for ( j=0; j < this.SVindexes.length; j++) 
+				output += this.alpha[this.SVindexes[j]] * this.kernelFunc( this.SV[j], x);
 		}
 		return output;
 	}
-	else if ( tx == "vector" && this.dim_input == 1) {
-		if (  this.kernel =="linear" && this.w)
-			output = add( mul(x, this.w) , this.b);
-		else {
-			output = zeros(x.length);
-			for ( i=0; i < x.length; i++) {				
-				output[i] = this.b;
-				for ( j=0; j < this.SVindexes.length; j++) {
-					output[i] += this.alpha[this.SVindexes[j]] * kernel ( this.SV[j], x[i], this.kernel, this.kernelpar);
-				}
+	else if ( this.dim_input == 1) {
+		output = zeros(x.length);
+		for ( i=0; i < x.length; i++) {				
+			output[i] = this.b;
+			for ( j=0; j < this.SVindexes.length; j++) {
+				output[i] += this.alpha[this.SVindexes[j]] * this.kernelFunc( this.SV[j], x[i]);
 			}
 		}
 		return output;
 	}	
 	else {
-		if (  this.kernel =="linear" && this.w)
-			output = add( mul(x, this.w) , this.b);
-		else {
-			output = zeros(x.length);
-			for ( i=0; i < x.length; i++) {				
-				output[i] = this.b;
-				var xi = x.row(i);
-				for ( j=0; j < this.SVindexes.length; j++) {
-					output[i] += this.alpha[this.SVindexes[j]] * kernel ( this.SV.row(j), xi, this.kernel, this.kernelpar);
-				}
-			}
+		// Cache SVs
+		var SVs = new Array(this.SVindexes.length);
+		for ( j=0; j < this.SVindexes.length; j++) 
+			SVs[j] = this.SV.row(j);
+		
+		output = zeros(x.length);
+		for ( i=0; i < x.length; i++) {				
+			output[i] = this.b;
+			var xi = x.row(i);
+			for ( j=0; j < this.SVindexes.length; j++) 
+				output[i] += this.alpha[this.SVindexes[j]] * this.kernelFunc( SVs[j], xi);			
 		}
 		return output;
 	}

@@ -79,7 +79,7 @@ function kernelFunction(kerneltype, par, inputType) {
 	if ( typeof(kerneltype) === 'undefined')
 		var kerneltype = "rbf"; 
 	if (kerneltype != "linear" && typeof(par) === 'undefined') {
-		var par = kernel_default_parameter(kerneltype, size(x1,1));
+		var par = kernel_default_parameter(kerneltype);
 	}
 	if ( typeof(inputType) != 'string')
 		var inputType = "vector"; 
