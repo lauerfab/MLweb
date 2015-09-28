@@ -160,6 +160,13 @@ Matrix.prototype.toArrayOfFloat64Array = function ( ) {
 	return A;
 }
 
+function array2mat( A ) {
+	return mat(A, true);
+}
+function array2vec( a ) {
+	return vectorCopy(a);
+}
+
 function size( A, sizealongdimension ) {
 	var size;
 	switch( type(A) ) {

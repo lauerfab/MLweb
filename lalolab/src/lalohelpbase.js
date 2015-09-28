@@ -1,6 +1,8 @@
 // Globals for HElP content
 var htmlspace = "&nbsp;";
 var htmltab = htmlspace+htmlspace+htmlspace+htmlspace; 
+var htmlmatrix = "<a href='lalolib.html#matrix' target='_blank'>matrix</a>"; 
+var htmlvector = "<a href='lalolib.html#vector' target='_blank'>vector</a>";
 var HELPcontent = new Array();
 var pathToBook = "../book/en/";
 

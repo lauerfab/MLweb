@@ -323,7 +323,7 @@ which returns the uninformative "object" for all the types below. <code>type(x)<
 </pre>
 Note that <code>"vector"</code> is also returned for Arrays containing only numbers. Arrays can be used in general for lists of variable length with easy insertion and removal of entries.
 
-<h4>Vectors</h4>
+<h4 id="vector">Vectors</h4>
 
 <p>
 Vectors are implemented as standard <code>Float64Array</code> objects with a fixed size stored in the property <code>length</code>:
@@ -348,13 +348,15 @@ x2 = vectorCopy( x );
 while <code>x2 = x</code> makes <code>x2</code> point to the same location in memory as <code>x</code> (in a LALOLab script, x2 = x actually copies x into x2).
 </p>
 <p>
-The vector copy can also be used to convert a standard javascript <code>Array</code> of numbers to a vector with 
+<strong><i>Creating a Vector from an Array:</i></strong> the vector copy can also be used to convert a standard javascript <code>Array</code> of numbers to a vector with 
 <pre>
-x = vectorCopy( [1, 2, 3, -4.2] );   // returns a Float64Array (i.e. a vector) initialized with the given values 
+x = vectorCopy( [1, 2, 3, -4.2] );   // returns a Float64Array (i.e. a vector) initialized with the given values
+y = array2vec( [1, 2, 3, -4.2] );   // returns the same vector (this is equivalent)
 </pre>
+However, most functions working on vectors also work with Arrays of numbers.
 </p>
 
-<h4>Matrices</h4>
+<h4 id="matrix">Matrices</h4>
 
 Matrices are implemented as <code>Matrix</code> objects created with 
 <pre>
@@ -374,6 +376,14 @@ The matrix entries are stored rowwise in a single vector <code>A.val</code>, i.e
 A.val[i*A.n + j]   // = A[i,j] in LALOLab
 </pre>
 for i in the range 0...A.m-1 and j in the range 0...A.n-1.
+
+<p>
+<strong><i>Creating a Matrix from a 2D Array:</i></strong> given a 2D Array, a matrix is obtained with the function <i>mat</i> as
+<pre>
+a2DArray = [ [ 1, 2, 3], [4, 5, 6] ];  // an Array of as many Arrays as rows in the matrix
+aMatrix = array2mat(a2DArray);         // a Matrix with 2 rows and 3 columns
+</pre>
+</p>
 
 <h4>Sparse vectors and matrices (experimental)</h4>
 

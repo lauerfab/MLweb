@@ -1437,7 +1437,7 @@ LASSO.prototype.train = function (X, y, softthresholding) {
 	this.w = w;
 	this.b = b;
 	
-	return this.test(X,y);
+	return this;
 	
 }
 LASSO.prototype.tune = function (X,y,Xv,yv) {
@@ -1482,7 +1482,7 @@ LARS.prototype.train = function (X, y) {
 	this.w = get(this.path,range(X.n), this.n);
 	this.b = this.path.val[X.n * this.path.n + this.n];
 	this.support = find( isNotEqual(this.w, 0) );
-	return this.test(X,y);
+	return this;
 }
 LARS.prototype.predict = function (X, y) {
 

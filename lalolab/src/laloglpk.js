@@ -435,7 +435,7 @@ norm(x - xh)
 	var obj = f(x);
 	var g = grad(x);
 	var normg = norm(g);
-	
+	var iter = 0;
 	do {
 		
 		// line search
@@ -449,9 +449,10 @@ norm(x - xh)
 		g = grad(x);
 		normg = norm(g);
 		
+		iter++;
 		//console.log(linesearch.lambda, x, obj, g);
 	} while ( normg > TOLgrad && prevobj - obj > TOLobj && norm(subVectors(x, xprev) ) > TOLx ) ;
-	console.log(" OBJ: " + obj + ", norm(grad): " + normg, "prevobj - obj", prevobj - obj );
+	console.log(" OBJ: " + obj + ", norm(grad): " + normg, "prevobj - obj", prevobj - obj, "iter: ", iter );
 	return x;
 }
 
@@ -556,13 +557,13 @@ function armijodir (f, xc, fc, g, d ) {
 	const alpha = 0.0001;
 	const blow = 0.1;
 	const bhigh = 0.5;
-	const p1 = -dot( g, d);
+	const p1 = dot( g, d);
 	
 	var lambda = Math.min(1,100/(1+norm(g))); 
 	var fgoal = fc + alpha * lambda * p1;
 	
     var lambda1 = lambda;
-    var xt = subVectors(xc, mulScalarVector(lambda, g) );
+    var xt = addVectors(xc, mulScalarVector(lambda, d) );
     var ft_1 = fc;
     var ft = f(xt);
 
@@ -578,11 +579,11 @@ function armijodir (f, xc, fc, g, d ) {
     // next iterations
 	while(ft > fgoal && iter <= 10) {
 		            
-		lambda=mincubic(fc, p1, lambda1, ft, blow*lambda1, bhigh*lambda1, lambda2, ft_1);
+		lambda=mincubic(fc, p1, lambda1, ft, lambda2, ft_1, blow*lambda1, bhigh*lambda1 );
 		lambda2 = lambda1;
 		lambda1 = lambda;
 		
-		xt = subVectors(xc, mulScalarVector(lambda, g) );
+		xt = addVectors(xc, mulScalarVector(lambda, d) );
 		ft_1 = ft;
 		ft = f(xt);
 		
