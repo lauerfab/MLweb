@@ -403,10 +403,6 @@ b = A*x + 0.01*randn(100)
 xh = minimize(A.n, loss, grad)
 norm(x - xh)
 */
-	const TOLobj = 1e-8;
-	const TOLx = 1e-6;
-	const TOLgrad = 1e-4;
-
 	var x;
 	var n = 1; // dimension of x
 	
@@ -431,6 +427,45 @@ norm(x - xh)
 		x = 20 * Math.random() - 10; 
 	}
 	
+	if ( n == 1 )
+		return secant(f, grad, x);
+	else if ( n > 500 ) 
+		return steepestdescent(f, grad, x);
+	else
+		return bfgs(f, grad, x);
+}
+
+function secant( f, grad, x0 ) {
+	// for a unidimensional function f
+	// find a root to f'(x) = 0 with the secant method
+	const TOLx = 1e-6;
+	
+	var x = x0; 
+	var g = grad(x);
+	var dx = -0.01*g;
+	x += dx;
+	var gprev,dg;
+	do {
+		gprev = g;
+		g = grad(x);
+		dg = g-gprev;
+
+		dx *= -g / dg;
+		x += dx;
+
+	} while ( Math.abs(dx) > TOLx);
+	return x;
+}
+
+
+function steepestdescent(f, grad, x0) {
+	// assume x is a vector
+	
+	const TOLobj = 1e-8;
+	const TOLx = 1e-6;
+	const TOLgrad = 1e-4;
+
+	var x = x0;
 	var xprev;
 	var obj = f(x);
 	var g = grad(x);
@@ -453,6 +488,60 @@ norm(x - xh)
 		//console.log(linesearch.lambda, x, obj, g);
 	} while ( normg > TOLgrad && prevobj - obj > TOLobj && norm(subVectors(x, xprev) ) > TOLx ) ;
 	console.log(" OBJ: " + obj + ", norm(grad): " + normg, "prevobj - obj", prevobj - obj, "iter: ", iter );
+	return x;
+}
+
+function bfgs( f, grad, x0 ) {
+	// assume x is a vector
+	
+	const n = x0.length;
+	const TOLobj = 1e-8;
+	const TOLx = 1e-6;
+	const TOLgrad = 1e-4;
+
+	var x = x0;
+	var xprev;
+	var obj = f(x);
+	var H = eye(n);
+	var g,direction, delta, gamma, ls;
+	var normg;
+	var Hgamma;
+	var dH;
+	var iter = 0;
+	do {
+		g = grad(x);
+		normg = norm(g);
+		direction = minusVector( mulMatrixVector(H, g ) );
+		
+		// line search
+		var linesearch = armijodir (f, x, obj, g, direction ); 
+
+		// take the step
+		xprev = vectorCopy(x);
+		prevobj = obj;		
+		x = linesearch.x;
+		obj = linesearch.obj;
+
+		// update Hessian inverse approximation
+		delta = subVectors(x,xprev);
+		gamma = subVectors(grad(x) , g);
+		
+		Hgamma = mulMatrixVector(H, gamma);
+		
+		var deltagamma = dot(delta,gamma);
+		var delta_ = mulScalarVector(1/deltagamma, delta);
+
+		var deltagammaH = outerprodVectors(delta_, Hgamma);
+		
+		dH = subMatrices(outerprodVectors(delta_, delta, 1+ dot(gamma, Hgamma)/deltagamma) , addMatrices(deltagammaH, transposeMatrix(deltagammaH) ) );
+		//--		
+		
+		H = add(H, dH); 	
+		
+		iter++;
+			
+	} while ( normg > TOLgrad && prevobj - obj > TOLobj && norm(subVectors(x, xprev) ) > TOLx ) ;
+	console.log(" OBJ: " + obj + ", norm(grad): " + normg, "prevobj - obj", prevobj - obj, "iters: ", iter );
 	return x;
 }
 
