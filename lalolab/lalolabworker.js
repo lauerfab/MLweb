@@ -496,6 +496,9 @@ function JScode( args ) {
 		}
 	}
 	
+	// Correct print() -> laloprint()
+	cmd = cmd.replace(/print\(/g,"laloprint(");
+	
 	if ( args.html ) {
 		cmd += htmlstr('\n}\n</script>\n</head>\n');
 		cmd += htmlstr('\n<body onload="myLALOLabScript();">\n');

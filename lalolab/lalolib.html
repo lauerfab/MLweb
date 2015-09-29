@@ -157,7 +157,7 @@ The following shows how to use the library. The <a href="#apiref">list of availa
 <li><a href="#importscripts">Importing LALOLab scripts</a></li>
 <li><a href="#importjavascript">Importing Javascript/LALOLib code</a></li>
 <li><a href="#datatypes">Implementation details and data types</a></li>
-<li><a href="#ml">Using the machine learning functions</a></li>
+<li><a href="#ml">Using the machine learning functions (ML.js)</a></li>
 <li><a href="#efficient">Writing efficient code with LALOLib</a></li>
 <li><a href="#extend">Extending LALOLib/LALOLab</a></li>
 <li><a href="#apiref">Available functions / API reference</a></li>
@@ -174,6 +174,23 @@ LALOLib functions can be used in a straightforward manner to implement computati
 <pre id="pre1">
 </pre>
 <div class="res"><label class="restitle">res1</label><label id="res1">Click the button above to run the example</label></div>
+<p>
+In this example we used the <a id="laloprint"><strong><i>laloprint()</i></strong></a> function to print a vector. Here are the various ways in which it can be used:
+<pre>
+// Print the vector or matrix X to the standard LALOLib output (an HTML div with id="LALOLibOutput")
+laloprint( X );			
+
+// Print X to the HTML element with id=htmlId 
+laloprint( X, htmlId ); 
+
+// Append X to the HTML element with id=htmlId (
+laloprint( X, htmlId, true ); 
+
+// Return an HTML formated String for X
+str = laloprint(X, true);
+</pre>
+</p>
+
 
 <h2 id="safer">The safer (asynchronous) method: Computing in a background Lab</h2>
 <p>
@@ -468,7 +485,7 @@ For supervised learning, predictive models are created with a <i>new</i> stateme
 <pre>
 model = new Classifier(SVM, params); 
 </pre>
-creates a new support vector machine (SVM) classifier with an optional argument (params) to set hyperparameters. Then, given an N-by-d matrix <i>X</i> of N observations in dimension d (N data instances described by d features each) and the corresponding vector of labels <i>Y</i>, the model can be trained with
+creates a new support vector machine (SVM) classifier with an optional argument (params) to set hyperparameters. Then, given an N-by-d <a href="matrix">matrix</a> <i>X</i> of N observations in dimension d (N data instances described by d features each) and the corresponding <a href="#vector">vector</a> of labels <i>Y</i>, the model can be trained with
 <pre>
 model.train(X, Y);
 </pre>
@@ -527,7 +544,7 @@ for ( var i = 1; i < 10; i++) {
 
 function ex1 () {
 	var a = rand(3);
-	res1.innerHTML = "The norm of " + laloprint(transpose(a),true) + " is " + norm(a);
+	res1.innerHTML = "The norm of <br>" + laloprint(a, true) + " is " + norm(a);
 }
 
 
@@ -571,7 +588,7 @@ function ex5 () {
 	u = [1,-1,1];	// create vectors in global scope (declared without the 'var' keyword)
 	v = [1,2,3];
 	var u_dot_v  = lalo("u' * v");
-	res5.innerHTML = "The dot product between " + laloprint(transpose(u),true) + " and " + laloprint(transpose(v),true) + " is " + u_dot_v;
+	res5.innerHTML = "The dot product between<br> " + laloprint(u,true) + " and<br> " + laloprint(v,true) + " is " + u_dot_v;
 }
 
 function ex6 () {
