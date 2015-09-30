@@ -27,7 +27,7 @@ Ready-to-use versions of the tools are available online at:
 
 - **Linear algerbra:** basic vector and matrix operations, linear system solvers, matrix factorizations (QR, Cholesky), eigendecomposition, singular value decomposition, conjugate gradient sparse linear system solver,... )
 - **Statistics:** random numbers, sampling from and estimating standard distributions
-- **Optimization:** gradient descent, linear programming (thanks to [glpk.js](https://github.com/hgourvest/glpk.js)), quadratic programming
+- **Optimization:** steepest descent, BFGS, linear programming (thanks to [glpk.js](https://github.com/hgourvest/glpk.js)), quadratic programming
 
 ## Machine learning capabilities provided by ML.js
 

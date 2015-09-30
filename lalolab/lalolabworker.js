@@ -60,10 +60,14 @@ onmessage = function ( WorkerEvent ) {
 			  	if ( WorkerCommandList[k].indexOf("{") >= 0 || WorkerCommandList[k].indexOf("}") >= 0) {
 			  		// this line includes braces => plain javascript: do not parse it!
 			  		cmd += WorkerCommandList[k];
-			  		if ( WorkerCommandList[k].indexOf("}") >= 0 ) {
-			  			// braces closed, we can end the line
-				  		cmd += " ;\n"; 
+			  		if ( removeSpaces( WorkerCommandList[k] ).indexOf("}") > 0 ) {
+		  				// braces closed on same line, probably an object parameter => we can end the line 
+			  			cmd += " ;\n"; 
 				  	}				  	
+				  	else { 
+				  		// either only a closing braces or a braces left open, just add a newline
+				  		cmd += "\n";
+				  	}
 			  	}
 			  	else {
 			  		// standard lalolab line
@@ -483,11 +487,15 @@ function JScode( args ) {
 		if( WorkerCommandList[k].length > 0 ) {
 		  	if ( WorkerCommandList[k].indexOf("{") >= 0 || WorkerCommandList[k].indexOf("}") >= 0) {
 		  		// this line includes braces => plain javascript: do not parse it!
-		  		cmd += WorkerCommandList[k];
-		  		if ( WorkerCommandList[k].indexOf("}") >= 0 ) {
-		  			// braces closed, we can end the line
+		  		cmd += WorkerCommandList[k] ;
+		  		if ( removeSpaces( WorkerCommandList[k]).indexOf("}") > 0 ) {
+		  			// braces closed on same line, probably an object parameter => we can end the line 
 			  		cmd += " ;<br>"; 
 			  	}				  	
+			  	else { 
+			  		// either only a closing braces or a braces left open, just add a newline
+			  		cmd += "<br>";
+			  	}
 		  	}
 		  	else {
 		  		// standard lalolab line
