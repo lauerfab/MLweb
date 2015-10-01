@@ -3567,10 +3567,10 @@ function sum( A , sumalongdimension ) {
 			return sumVector( A.val ) ;
 		}
 		else if ( sumalongdimension == 1 ) {
-			// TODO
+			return sumspMatrixRows( A );	
 		}
 		else if ( sumalongdimension == 2 ) {
-			// TODO
+			return sumspMatrixCols( A );	
 		}
 		else 
 			return undefined;
@@ -3637,14 +3637,21 @@ function prod( A , prodalongdimension ) {
 	
 	switch ( type( A ) ) {
 	case "vector":
-		if ( arguments.length == 1 || prodalongdimension == 1 ) {
+		if ( arguments.length == 1 || prodalongdimension == 1 ) 
 			return prodVector(A);
-		}
-		else {
+		else 
 			return vectorCopy(A);
-		}
 		break;
-
+	case "spvector":
+		if ( arguments.length == 1 || prodalongdimension == 1 ) {
+			if ( A.val.length < A.length )
+				return 0;
+			else
+				return prodVector(A.val);
+		}
+		else 
+			return A.copy();
+		break;
 	case "matrix":
 		if( arguments.length == 1  ) {
 			return prodMatrix( A ) ;
@@ -3654,6 +3661,22 @@ function prod( A , prodalongdimension ) {
 		}
 		else if ( prodalongdimension == 2 ) {
 			return prodMatrixCols( A );	
+		}
+		else 
+			return undefined;
+		break;
+	case "spmatrix":
+		if( arguments.length == 1  ) { 
+			if ( A.val.length < A.m * A.n )
+				return 0;
+			else
+				return prodVector( A.val ) ;
+		}
+		else if ( prodalongdimension == 1 ) {
+			return prodspMatrixRows( A );	
+		}
+		else if ( prodalongdimension == 2 ) {
+			return prodspMatrixCols( A );	
 		}
 		else 
 			return undefined;
@@ -3700,10 +3723,10 @@ function mean( A , sumalongdimension ) {
 			return sumVector( A.val ) / ( A.m * A.n);
 		}
 		else if ( sumalongdimension == 1 ) {
-			//TODO
+			return mulScalarMatrix(1/A.m, sumspMatrixRows(A));
 		}
 		else if ( sumalongdimension == 2 ) {
-			//TODO
+			return mulScalarVector(1/A.n, sumspMatrixCols(A));
 		}
 		else 
 			return undefined;
@@ -3745,6 +3768,7 @@ function variance(A, alongdimension ) {
 		break;
 			
 	case "matrix":
+	case "spmatrix":
 		if( typeof(alongdimension) == "undefined" ) {
 			var res = (sum(entrywisemul(A,A)) / (A.m * A.n ) ) - meanA*meanA;
 			return res;
@@ -3795,6 +3819,10 @@ function cov( X ) {
 	case "matrix":
 		var mu = mean(X,1).row(0);
 		return divMatrixScalar(xtx( subMatrices(X, outerprod(ones(X.m), mu ) ) ), X.m);
+		break;
+	case "spmatrix":
+		var mu = mean(X,1).row(0);
+		return divMatrixScalar(xtx( subspMatrixMatrix(X, outerprod(ones(X.m), mu ) ) ), X.m);
 		break;
 	default: 
 		return undefined;
@@ -3945,13 +3973,24 @@ function normp( A , p, sumalongdimension ) {
 
 function normnuc( A ) {
 	// nuclear norm
-	if ( type(A) == "matrix" ) {
+	switch( type(A) ) {
+	case "matrix":
 		return sumVector(svd(A)); 
-	}
-	else if ( typeof(A) == "number")
+		break;
+	case "spmatrix":
+		return sumVector(svd(fullMatrix(A))); 
+		break;
+	case "number":
 		return A;
-	else
-		return 1; 
+		break;
+	case "vector":
+	case "spvector":
+		return 1;
+		break;
+	default:
+		return undefined;
+		break;
+	}
 }
 function norm0( A , sumalongdimension, epsilonarg ) {
 	// l0-pseudo-norm of vectors and matrices
@@ -4006,10 +4045,45 @@ function norm0( A , sumalongdimension, epsilonarg ) {
 			return res;		
 		}
 		else 
-			return "undefined";
+			return undefined;
+		break;
+	case "spmatrix":
+		if( arguments.length == 1 ) {
+			return norm0Vector(A.val, epsilon);
+		}
+		else if ( sumalongdimension == 1 ) {
+			// norm of columns, result is row vector
+			var res = zeros(1, A.n);
+			if ( A.rowmajor ) {
+				for ( var k=0; k < A.val.length; k++)
+					if (Math.abs(A.val[k]) > epsilon)
+						res.val[A.cols[k]] ++;
+			}
+			else {
+				for ( var i=0; i<A.n; i++)
+					res.val[i] = norm0Vector(A.col(i).val, epsilon);
+			}
+			return res;		
+		}
+		else if ( sumalongdimension == 2 ) {
+			// norm of rows, result is column vector
+			var res = zeros(A.m);
+			if ( A.rowmajor ) {
+				for ( var i=0; i<A.m; i++)
+					res[i] = norm0Vector(A.row(i).val, epsilon);			
+			}
+			else {
+				for ( var k=0; k < A.val.length; k++)
+					if (Math.abs(A.val[k]) > epsilon)
+						res[A.rows[k]]++;
+			}
+			return res;		
+		}
+		else 
+			return undefined;
 		break;
 	default: 
-		return "undefined";
+		return undefined;
 	}
 }
 /**

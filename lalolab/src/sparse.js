@@ -151,13 +151,14 @@ spMatrix.prototype.toRowmajor = function () {
  */
 spMatrix.prototype.row = function ( i ) {
 	if ( this.rowmajor ) {
-	//	return new spVector(this.n, this.val.subarray(this.rows[i], this.rows[i+1]), this.cols.subarray(this.rows[i], this.rows[i+1]));	
+		return new spVector(this.n, this.val.subarray(this.rows[i], this.rows[i+1]), this.cols.subarray(this.rows[i], this.rows[i+1]));	
+	/*
 		var s = this.rows[i];
 		var e = this.rows[i+1];
-		var vec = new spVector(e-s);
+		var vec = new spVector(this.n);
 		vec.val.set(this.val.subarray(s,e));
 		vec.ind.set(this.cols.subarray(s,e));
-		return vec;
+		return vec;*/
 	}
 	else {
 		error ("Cannot extract sparse column from a sparse matrix in row major format.");
@@ -407,8 +408,8 @@ function speye(n) {
 	if ( n == 1)
 		return 1;
 	var val = ones(n);
-	var cols = range(n+1);
-	var rows = cols.slice(0,n);
+	var rows = range(n+1);
+	var cols = rows.slice(0,n);
 	return new spMatrix(n,n,val,cols,rows);
 }
 
@@ -1330,6 +1331,106 @@ function applyspMatrix( f, X ) {
 		}
 	}
 	return C;
+}
+/**
+ * @param{spVector}
+ * @return{number}
+ */
+function sumspVector( a ) {
+	return sumVector(a.val);
+}
+/**
+ * @param{spMatrix}
+ * @return{number}
+ */
+function sumspMatrix( A ) {
+	return sumVector(A.val);
+}
+/**
+ * @param{spMatrix}
+ * @return{Matrix}
+ */
+function sumspMatrixRows( A ) {
+	var res = zeros(A.n);
+	if ( A.rowmajor ) {
+		for ( var k=0; k < A.val.length; k++)
+			res[A.cols[k]] += A.val[k];
+	}
+	else {
+		for ( var i=0; i<A.n; i++)
+			res[i] = sumspVector(A.col(i));
+	}
+	return new Matrix(1,A.n, res, true);
+}
+/**
+ * @param{spMatrix}
+ * @return{Float64Array}
+ */
+function sumspMatrixCols( A ) {	
+	var res = zeros(A.m);
+	if ( A.rowmajor ) {
+		for ( var i=0; i<A.m; i++)
+			res[i] = sumspVector(A.row(i));			
+	}
+	else {
+		for ( var k=0; k < A.val.length; k++)
+			res[A.rows[k]] += A.val[k];
+	}
+	return res;
+}
+/**
+ * @param{spMatrix}
+ * @return{Matrix}
+ */
+function prodspMatrixRows( A ) {
+	if ( A.rowmajor ) {
+		var res = ones(A.n);	
+		for ( var i=0; i < A.m; i++) {
+			var s = A.rows[i];
+			var e = A.rows[i+1];
+			for ( var j=0; j < A.n; j++) 
+				if ( A.cols.subarray(s,e).indexOf(j) < 0 )
+					res[j] = 0;
+			for ( var k=s; k < e; k++)
+				res[A.cols[k]] *= A.val[k];
+		}
+	}
+	else {
+		var res = zeros(A.n);
+		for ( var i=0; i<A.n; i++) {
+			var a = A.col(i);
+			if ( a.val.length == a.length )
+				res[i] = prodVector(a.val);
+		}
+	}
+	return new Matrix(1,A.n, res, true);
+}
+/**
+ * @param{spMatrix}
+ * @return{Float64Array}
+ */
+function prodspMatrixCols( A ) {	
+	if ( A.rowmajor ) {
+		var res = zeros(A.m);
+		for ( var i=0; i<A.m; i++) {
+			var a = A.row(i);
+			if ( a.val.length == a.length )
+				res[i] = prodVector(a.val);
+		}
+	}
+	else {
+		var res = ones(A.m);	
+		for ( var j=0; j < A.n; j++) {
+			var s = A.cols[j];
+			var e = A.cols[j+1];
+			for ( var i=0; i < A.m; i++) 
+				if ( A.rows.subarray(s,e).indexOf(i) < 0 )
+					res[i] = 0;
+			for ( var k=s; k < e; k++)
+				res[A.rows[k]] *= A.val[k];
+		}
+	}
+	return res;
 }
 
 
