@@ -8,7 +8,7 @@
 function Regression (algorithm, params ) {
 	
 	if ( typeof(algorithm) == "undefined" ) {
-		var algorithm = LeastSquares;
+		var algorithm = AutoReg;
 	}
 	else if (typeof(algorithm) == "string") 
 		algorithm = eval(algorithm);
@@ -140,7 +140,7 @@ Regression.prototype.tune = function ( X, y, Xv, yv ) {
 					// do cross validation
 					var stats = this.cv(X,y);
 				}
-				validationErrors.val[p1*this.parameterGrid[parnames[1]].length + p2] = stats.mse;
+				validationErrors.val[p0*this.parameterGrid[parnames[1]].length + p1] = stats.mse;
 				if ( stats.mse < minValidError ) {
 					minValidError = stats.mse;
 					bestfit = stats.fit;
@@ -167,9 +167,7 @@ Regression.prototype.tune = function ( X, y, Xv, yv ) {
 
 Regression.prototype.train = function (X, y) {
 	// Training function: should set trainable parameters of the model
-	//					  and return the training error.
-	
-	
+	//					  and return the training error.		
 
 	return this;
 
@@ -308,7 +306,7 @@ Regression.prototype.single_x = function ( x ) {
 }
 
 //////////////////////////////////////
-//// AutoReg: Automatic selection of best algo
+//// AutoReg: Automatic selection of best algo and parameters
 ////////////////////////////////////
 function AutoReg ( params) {
 	var that = new Regression ( AutoReg, params);
@@ -320,9 +318,17 @@ AutoReg.prototype.construct = function ( params ) {
 	// Default parameters:
 
 	this.linearMethods = ["LeastSquares", "LeastAbsolute", "RidgeRegression", "LASSO"];
-	this.nonlinearMethods = ["KNNreg", "KernelRidgeRegression", "SVR", "MLPreg"];
-	this.excludes = []; 
+	this.linearParams = [undefined, undefined, undefined, {lambda: 1}]; // only those that are not tuned
 	
+	this.nonlinearMethods = ["KNNreg", "KernelRidgeRegression", "SVR", "MLPreg"];
+	this.nonlinearParams = [undefined, {kernel: "rbf"}, {kernel: "rbf", epsilon: 0.1}, undefined]; // only those that are not tuned
+
+	this.excludes = []; 
+
+	this.linear = "auto"; // possible values: "yes", "no", true, false, "auto"
+
+	this.excludes1D = ["LASSO"]; // methods that do not work with size(X,2) = 1
+		
 	// Set parameters:
 	var i;
 	if ( params) {
@@ -333,7 +339,84 @@ AutoReg.prototype.construct = function ( params ) {
 }
 AutoReg.prototype.train = function ( X, y ) {
 
+	var dim = size(X,2);
+	
+	var bestlinearmodel;
+	var bestnonlinearmodel;
+	var bestmse = Infinity;
+	var bestnlmse = Infinity;
+	var minmse = 1e-8;
+	
+	var m;
+	if ( this.linear != "no" && this.linear != false ) {
+		// Try linear methods
+		m =0;	
+		while ( m < this.linearMethods.length && bestmse > minmse ) {
+			if ( this.excludes.indexOf( this.linearMethods[m] ) < 0 && (dim != 1 || this.excludes1D.indexOf( this.linearMethods[m] ) < 0) ) {
+				console.log("Testing " + this.linearMethods[m] );
+				var model = new Regression(this.linearMethods[m], this.linearParams[m]);
+				var stats = model.cv(X,y);
+				if ( stats.mse < bestmse ) {
+					bestmse = stats.mse; 
+					bestlinearmodel = m;
+				}
+			}
+			m++;
+		}
+		console.log("Best linear method is " + this.linearMethods[bestlinearmodel] + " ( mse = " + bestmse + ")");
+	}
+	
+	if ( this.linear != "yes" && this.linear != true ) {
+		// Try nonlinear methods
+		m = 0;
+		while ( m < this.nonlinearMethods.length && bestnlmse > minmse ) {
+			if ( this.excludes.indexOf( this.nonlinearMethods[m] ) < 0 && (dim != 1 || this.excludes1D.indexOf( this.nonlinearMethods[m] ) < 0) ) {
+				console.log("Testing " + this.nonlinearMethods[m] );
+				var model = new Regression(this.nonlinearMethods[m], this.nonlinearParams[m]);
+				var stats = model.cv(X,y);
+				if ( stats.mse < bestnlmse ) {
+					bestnlmse = stats.mse; 
+					bestnonlinearmodel = m;
+				}
+			}
+			m++;
+		}
+		console.log("Best nonlinear method is " + this.nonlinearMethods[bestnonlinearmodel] + " ( mse = " + bestnlmse + ")");
+	}
+	
+	// Retrain best model on all data and store it in this.model
+	if ( bestmse < bestnlmse ) {
+		console.log("Best method is " + this.linearMethods[bestlinearmodel] + " (linear)"); 
+		this.model = new Regression(this.linearMethods[bestlinearmodel], this.linearParams[bestlinearmodel]);
+	}
+	else {
+		console.log("Best method is " + this.nonlinearMethods[bestnonlinearmodel] + " (nonlinear)");
+		this.model = new Regression(this.nonlinearMethods[bestnonlinearmodel], this.nonlinearParams[bestnonlinearmodel]);		
+	}
+			
+	this.model.train(X,y);
+	return this;
 }
+
+AutoReg.prototype.tune = function ( X, y, Xv, yv ) {
+	
+	this.train(X,y);
+	if  ( typeof(Xv) != "undefined" && typeof(yv) != "undefined" ) 
+		var stats = this.test(Xv,yv, true);
+	else 
+		var stats = this.model.cv(X,y);
+
+	return {error: stats.mse, fit: stats.fit};	
+}
+
+AutoReg.prototype.predict = function ( X ) {
+	if ( this.model ) 
+		return this.model.predict(X);
+	else
+		return undefined;
+}
+
+
 
 //////////////////////////////////////
 ////// LeastSquares
@@ -1096,7 +1179,8 @@ SVR.prototype.train = function (X, y) {
 	// Prepare
 	const C = this.C;
 	const epsilon = this.epsilon; 
-	
+
+	/* use already computed kernelcache if any;
 	var kc;
 	if (typeof(this.kernelcache) == "undefined") {
 		// create a new kernel cache if none present
@@ -1104,7 +1188,9 @@ SVR.prototype.train = function (X, y) {
 	}
 	else 
 		kc = this.kernelcache;
-
+	*/
+	var kc = new kernelCache( X , this.kernel, this.kernelpar ); 
+	
 	var i;
 	var j;
 	const N = X.length;	// Number of data
@@ -1189,7 +1275,7 @@ SVR.prototype.train = function (X, y) {
 		//set(Q_j, range(N,m), mul( -yc[j] , kc.get_row( kj ) )); // jth row of Q : right part
 
 		Ki = kc.get_row( ki );
-		if ( yc[i] > 0 ) {		
+		if ( yc[i] > 0 ) {				
 			Q_i.set(Ki);
 			Q_i.set(minus(Ki), N); 
 		}
@@ -2075,7 +2161,7 @@ OLS.prototype.train = function (X, y) {
 /////	MLPreg: Multi-Layer Perceptron for regression
 ///////////////////////////////////////////////////
 function MLPreg ( params) {
-	var that = new Classifier ( MLPreg, params);
+	var that = new Regression ( MLPreg, params);
 	return that;
 }
 MLPreg.prototype.construct = function (params) {
@@ -2099,7 +2185,7 @@ MLPreg.prototype.construct = function (params) {
 	}		
 
 	// Parameter grid for automatic tuning:
-	this.parameterGrid = undefined; 
+	this.parameterGrid = {hidden: [5,10,15,30]}; 
 }
 MLPreg.prototype.train = function (Xorig, y) {
 	// Training function
@@ -2245,26 +2331,26 @@ MLPreg.prototype.predict = function( x_unnormalized ) {
 
 	if ( (tx == "vector" && this.dim_input > 1) || (tx == "number" && this.dim_input == 1) ) {
 
-		/* Calcul des sorties obtenues sur la couche cachée */
+		/* Output of hidden layer */
 		if ( this.dim_input > 1 )
 			var hidden = tanh( addVectors( mulMatrixVector(this.W, x), this.w0 ) );
 		else 
 			var hidden = tanh( addVectors( mulScalarVector(x, this.W), this.w0 ) );
 
-		/* Calcul des sorties obtenues sur la couche haute */
+		/* Output of output layer */
 		var output = dot(this.V, hidden) + this.v0 ;
 		return output;
 	}
 	else if ( tx == "matrix" || (tx == "vector" && this.dim_input == 1)) {
 		output = zeros(x.length);
 		for ( i=0; i < x.length; i++) {
-			/* Calcul des sorties obtenues sur la couche cachée */
+			/* output of hidden layer */
 			if ( this.dim_input > 1 )
 				var hidden = tanh( addVectors( mulMatrixVector(this.W, x.row(i)), this.w0 ) );
 			else
 				var hidden = tanh( addVectors( mulScalarVector(x[i], this.W), this.w0 ) );
 				
-			/* Calcul des sorties obtenues sur la couche haute */
+			/* output of output layer */
 			output[i] = dot(this.V, hidden) + this.v0 ;
 		}
 		return output;
