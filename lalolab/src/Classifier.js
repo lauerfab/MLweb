@@ -3858,7 +3858,7 @@ NaiveBayes.prototype.train = function ( X, labels ) {
 	// Training function
 
 	// should start by checking labels (and converting them to suitable numerical values): 
-	var y = this.checkLabels( labels , false) ; // use 0,1 instead of -1, 1 for binary case
+	var y = this.checkLabels( labels , true) ; // use 0,1 instead of -1, 1 for binary case
 	
 	const dim = X.n; 
 	this.dim_input = dim;
@@ -3878,15 +3878,13 @@ NaiveBayes.prototype.train = function ( X, labels ) {
 		}
 	}
 	
-	/*
-	if ( labels.length < 2000)
-		return (1 - this.test(X, labels));*/
-	return this.info();
+	return this;
 }
 
 NaiveBayes.prototype.predict = function ( x ) {
 
 	var scores = this.predictscore( x );
+	console.log(scores);
 	if (typeof(scores) != "undefined") {
 		
 		if ( type ( x ) == "matrix" ) {
