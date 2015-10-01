@@ -55,19 +55,114 @@ Regression.prototype.construct = function ( params ) {
 Regression.prototype.tune = function ( X, y, Xv, yv ) {
 	// Main function for tuning an algorithm on a given data set
 
-	/*TODO
-		1) apply cross validation to estimate the performance of all sets of parameters
+	/*
+		1) apply cross validation (or test on (Xv,yv) ) to estimate the performance of all sets of parameters
 			in this.parameterGrid
-			
-			- for each cross validation fold and each parameter set, 
-					create a new model, train it, test it and delete it.
 			
 		2) pick the best set of parameters and train the final model on all data
 			store this model in this.* 
 	*/
-	var stats = this.cv(X,y);
-	return {error: stats.mse, fit: stats.fit};
+
+	var validationSet = ( typeof(Xv) != "undefined" && typeof(yv) != "undefined" );
 	
+	var n = 0;
+	var parnames = new Array();
+
+	if (typeof(this.parameterGrid) != "undefined" ) {
+		for ( var p in this.parameterGrid ) {
+			parnames[n] = p;
+			n++;
+		}
+	}
+	var validationErrors;
+	var minValidError = Infinity;
+	var bestfit;
+
+	if ( n == 0 ) {
+		// no hyperparater to tune, so just train and test
+		if ( validationSet ) {
+			this.train(X,y);
+			var stats = this.test(Xv,yv, true);
+		}
+		else 
+			var stats = this.cv(X,y);
+		minValidError = stats.mse;
+		bestfit = stats.fit;
+	}
+	else if( n == 1 ) {
+		// Just one hyperparameter
+		var validationErrors = zeros(this.parameterGrid[parnames[0]].length);
+		var bestpar; 		
+
+		for ( var p =0; p <  this.parameterGrid[parnames[0]].length; p++ ) {
+			this[parnames[0]] = this.parameterGrid[parnames[0]][p];
+			if ( validationSet ) {
+				// use validation set
+				this.train(X,y);
+				var stats = this.test(Xv,yv, true);
+			}
+			else {
+				// do cross validation
+				var stats = this.cv(X,y);
+			}
+			validationErrors[p] = stats.mse;
+			if ( stats.mse < minValidError ) {
+				minValidError = stats.mse;
+				bestfit = stats.fit;
+				bestpar = this[parnames[0]];
+			}
+		}
+		
+		// retrain with all data
+		this[parnames[0]] = bestpar; 
+		if ( validationSet ) 
+			this.train( mat([X,Xv], true),reshape( mat([y,yv],true), y.length+yv.length, 1));
+		else
+			this.train(X,y);
+	}
+	else if ( n == 2 ) {
+		// 2 hyperparameters
+		validationErrors = zeros(this.parameterGrid[parnames[0]].length, this.parameterGrid[parnames[1]].length);
+		var bestpar = new Array(2); 		
+
+		for ( var p0 =0; p0 <  this.parameterGrid[parnames[0]].length; p0++ ) {
+			this[parnames[0]] = this.parameterGrid[parnames[0]][p0];
+
+			for ( var p1 =0; p1 <  this.parameterGrid[parnames[1]].length; p1++ ) {
+				this[parnames[1]] = this.parameterGrid[parnames[1]][p1];
+			
+				if ( validationSet ) {
+					// use validation set
+					this.train(X,y);
+					var stats = this.test(Xv,yv, true);
+				}
+				else {
+					// do cross validation
+					var stats = this.cv(X,y);
+				}
+				validationErrors.val[p1*this.parameterGrid[parnames[1]].length + p2] = stats.mse;
+				if ( stats.mse < minValidError ) {
+					minValidError = stats.mse;
+					bestfit = stats.fit;
+					bestpar[0] = this[parnames[0]];
+					bestpar[1] = this[parnames[1]];
+				}
+			}
+		}
+		
+		// retrain with all data
+		this[parnames[0]] = bestpar[0]; 
+		this[parnames[1]] = bestpar[1]; 		
+		if( validationSet )
+			this.train( mat([X,Xv], true),reshape( mat([y,yv],true), y.length+yv.length, 1));
+		else
+			this.train(X,y);
+	}
+	else {
+		// too many hyperparameters... 
+		error("Too many hyperparameters to tune.");
+	}	
+	return {error: minValidError, fit: bestfit, validationErrors: validationErrors};
 }
 
 Regression.prototype.train = function (X, y) {
@@ -75,8 +170,8 @@ Regression.prototype.train = function (X, y) {
 	//					  and return the training error.
 	
 	
-	// Return training error:
-	return this.test(X, y);
+
+	return this;
 
 }
 
@@ -210,6 +305,34 @@ Regression.prototype.info = function () {
 Regression.prototype.single_x = function ( x ) {
 	var tx = type(x);
 	return (tx == "number" || ( this.dim_input > 1 && (tx == "vector" || tx == "spvector" ) ) ) ;
+}
+
+//////////////////////////////////////
+//// AutoReg: Automatic selection of best algo
+////////////////////////////////////
+function AutoReg ( params) {
+	var that = new Regression ( AutoReg, params);
+	return that;
+}
+AutoReg.prototype.construct = function ( params ) {
+	// Read params and create the required fields for a specific algorithm
+	
+	// Default parameters:
+
+	this.linearMethods = ["LeastSquares", "LeastAbsolute", "RidgeRegression", "LASSO"];
+	this.nonlinearMethods = ["KNNreg", "KernelRidgeRegression", "SVR", "MLPreg"];
+	this.excludes = []; 
+	
+	// Set parameters:
+	var i;
+	if ( params) {
+		for (i in params)
+			this[i] = params[i]; 
+	}			
+
+}
+AutoReg.prototype.train = function ( X, y ) {
+
 }
 
 //////////////////////////////////////
@@ -434,6 +557,9 @@ RidgeRegression.prototype.construct = function ( params ) {
 		for (i in params)
 			this[i] = params[i]; 
 	}			
+		
+	// Parameter grid for automatic tuning:
+	this.parameterGrid = { "lambda" : [0.01, 0.1, 1, 5, 10] };	
 }
 
 RidgeRegression.prototype.train = function (X, y) {
