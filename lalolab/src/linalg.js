@@ -132,7 +132,7 @@ Matrix.prototype.row = function ( i ) {
 }
 
 /**
- * return a view (not a copy) on the matrix as an Array of Float64Array 
+ * return a copy of the matrix as an Array of Arrays
  * (do not do this with too many rows...)
  * @return {Array} 
  */
@@ -899,24 +899,40 @@ function randn( dim1, dim2 ) {
 }
 
 // Uniform random numbers
+/*
+ * @param{number}
+ * @return{Float64Array}
+ */
+function randVector(dim1) {
+	var res = new Float64Array(dim1);
+	for (var i=0; i< dim1; i++) {			
+		res[i] = Math.random();
+	}
+	return res;
+}
+/*
+ * @param{number}
+ * @param{number} 
+ * @return{Matrix}
+ */
+function randMatrix(dim1,dim2) {
+	const n = dim1*dim2;	
+	var res = new Float64Array(n);
+	for (var i=0; i< n; i++) {			
+		res[i] = Math.random();
+	}
+	return new Matrix(dim1,dim2,res,true);
+}
 function rand( dim1, dim2 ) {
 	var res;
 	if ( typeof ( dim1 ) == "undefined" || (dim1 == 1 && typeof(dim2)=="undefined") || (dim1 == 1 && dim2==1)) {
 		 return Math.random();
 	} 
 	else if (typeof(dim2) == "undefined" || dim2 == 1) {
-		res = new Float64Array(dim1);
-		for (var i=0; i< dim1; i++) {			
-			res[i] = Math.random();
-		}
-		return res;
+		return randVector(dim1);
 	}
 	else  {
-		res = zeros(dim1, dim2);
-		for (var i=0; i< dim1*dim2; i++) {
-				res.val[i] = Math.random();
-		}
-		return res;
+		return randMatrix(dim1,dim2);	
 	}
 }
 
@@ -4123,8 +4139,12 @@ function solve( A, b ) {
 		return spcgnr(A, b);
 	}
 
-	if( type(b) == "vector" )
-		return solveWithQRcolumnpivoting(A, b) ; 
+	if( type(b) == "vector" ) {
+		if ( A.m == A.n )
+			return solveGaussianElimination(A, b) ; 			
+		else
+			return solveWithQRcolumnpivoting(A, b) ; 
+	}
 	else
 		return solveWithQRcolumnpivotingMultipleRHS(A, b) ; // b is a matrix
 }
@@ -4386,19 +4406,19 @@ function solveWithQRcolumnpivotingMultipleRHS ( A, B ) {
 
 function solveGaussianElimination(Aorig, borig) {
 
-	// Solve linear system Ax = b with Gaussian elimination
+	// Solve square linear system Ax = b with Gaussian elimination
 	
 	var i;
 	var j;
 	var k;
 	
-	var A = matrixCopy( Aorig ); 
+	var A = matrixCopy( Aorig ).toArrayOfFloat64Array(); // useful to quickly switch rows
 	var b = vectorCopy( borig ); 
 		
-	const m = A.length;
-	const n = A.n;
+	const m = Aorig.m;
+	const n = Aorig.n;
 	if ( m != n)
-		return "undefined";
+		return undefined;
 	
 	// Set to zero small values... ??
 	
@@ -4406,56 +4426,59 @@ function solveGaussianElimination(Aorig, borig) {
 		
 		// Find imax = argmax_i=k...m |A_i,k|
 		var imax = k;
-		var Aimaxk = Math.abs(A.get(imax,k));
+		var Aimaxk = Math.abs(A[imax][k]);
 		for (i=k+1; i<m ; i++) {
-			var Aik = Math.abs( A.get(i,k) );
+			var Aik = Math.abs( A[i][k] );
 			if ( Aik > Aimaxk ) {
 				imax = i;
 				Aimaxk = Aik;
 			}
 		}
 		if ( isZero( Aimaxk ) ) {
-			return "singular";
+			console.log("** Warning in solve(A,b), A is square but singular, switching from Gaussian elimination to QR method.");
+			return solveWithQRcolumnpivoting(A,b);
 		} 
 		
 		if ( imax != k ) {
 			// Permute the rows
-			swaprows(A, k, imax);
+			var a = A[k];
+			A[k] = A[imax];
+			A[imax] = a;
 			var tmpb = b[k];
 			b[k] = b[imax];
 			b[imax] = tmpb;			
 		}		
+		var Ak = A[k];
 		
 		// Normalize row k 
-		var Akk = A.val[k*n + k];
+		var Akk = Ak[k];
 		b[k] /= Akk;
-		for ( j=0; j < n; j++) {
-			A.val[k*n + j] /= Akk;
+		
+		for ( j=k; j < n; j++) 
+			Ak[j] /= Akk;
+		
+		if ( Math.abs(Akk) < 1e-8 ) {
+			console.log("** Warning in solveGaussianElimination: " + Akk + " " + k + ":" + m );
 		}
-		if ( Math.abs(Akk) < 1e-8 )
-			console.log("Warning in solvGaussianElimination: " + Akk + " " + k + ":" + m );
 			
 		// Substract the kth row from others to get 0s in kth column
-		var Aik ;
+		var Aik ;			
 		for ( i=0; i< m; i++) {
 			if ( i != k ) {
-				Aik = A.val[i*n+k];
+				Aik = A[i][k];
 				if ( ! isZero(Aik) ) {
-					for ( j=0; j < n; j++) {
-						A.val[i*n+j] -= Aik * A.val[k*n+j]; 
-						b[i] -= Aik * b[k];
+					for ( j=k; j < n; j++) {
+						A[i][j] -= Aik * Ak[j]; 						
 					}
+					b[i] -= Aik * b[k];
 				}
 			}
-		}
-		
-		
+		}		
 	}
 
 	// Solution: 
 	return b;
 }
-
 
 function inv( M ) {
 	if ( typeof(M) == "number" )
