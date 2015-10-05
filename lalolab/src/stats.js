@@ -591,22 +591,42 @@ Bernoulli.prototype.pdf = Bernoulli.prototype.pmf = function ( x ) {
 		}
 	}
 	else {
-		if ( tx == "vector" ) {
+		switch( tx ) {
+		case "vector":
 			var p = pdfscalar(x[0], this.mean[0]);
 			for (var k =0; k < this.dimension; k++)
 				p *= pdfscalar(x[k], this.mean[k]);
+			break;
 			
-			return p;
-		}
-		else if ( tx == "matrix") {
+		case "spvector":
+			var p = 1;
+			for (var j=0; j < x.ind[0] ; j++)
+				p *= (1-this.mean[j]);
+			for (var k =0; k < x.val.length - 1; k++) {
+				p *= this.mean[x.ind[k]];
+				for (var j=x.ind[k]+1; j < x.ind[k+1] ; j++)
+					p *= (1-this.mean[j]);
+			}
+			p *= this.mean[x.ind[k]];
+			for (var j=x.ind[k]+1; j < this.dimension ; j++)
+				p *= (1-this.mean[j]);			
+			break;
+			
+		case "matrix":
 			var p = zeros(x.m); 
 			for (var i=0; i < x.m; i++) {
 				p[i] = pdfscalar(x.val[i*x.n], this.mean[0]);
 				for (var k =0; k < x.n; k++)
 					p[i] *= pdfscalar(x.val[i*x.n + k], this.mean[k]);			
 			}
-			return p;			
+			break;
+		case "spmatrix":
+			break;
+		default:
+			var p = undefined;
+			break;			
 		}
+		return p;
 	}
 	
 }
@@ -624,17 +644,24 @@ Bernoulli.prototype.sample = function ( N ) {
 
 Bernoulli.prototype.estimate = function ( X ) {
 	// Estimate dsitribution from the N-by-d matrix X
-	if ( type ( X ) == "matrix" ) {
+	switch ( type ( X ) ) {
+	case "matrix":
+	case "spmatrix":
 		this.mean = mean(X,1).val;
-		this.variance = entrywisemul(mean, sub(1, mean)) ;
+		this.variance = entrywisemul(this.mean, sub(1, this.mean)) ;
 		this.std = sqrt(this.variance);
 		this.dimension = X.n;
-	}
-	else { // X is a vector samples 
+		break;
+	case "vector":
+	case "spvector":
 		this.dimension = 1;
 		this.mean = mean(X) ;
 		this.variance = this.mean * (1-this.mean);
 		this.std = Math.sqrt(this.variance);
+		break;
+	default:
+		error("Error in Bernoulli.estimate( X ): is must be a (sp)matrix or (sp)vector.");
+		break;
 	}
 	return this;
 }
