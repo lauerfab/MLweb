@@ -206,7 +206,7 @@ or with
 depending on the desired capabilities. Then, commands can then be sent the the lab with <i>do( script, callback )</i> or <i>exec( command_string, callback )</i>. If an action needs to be taken upon the completion of the command, a callback function is provided.
 </p>
 <p>
- <strong>Note:</strong> when using a local copy of lalolib.js (or ml.js), this requires a local copy of <a href="lalolibworker.js" download>lalolibworker.js</a> (or <a href="mlworker.js" download>mlworker.js</a>) in the same directory. 
+ <strong>Note:</strong> when using a local copy of lalolib.js (or ml.js), this requires a local copy of <a href="lalolibworker.js" download>lalolibworker.js</a> (or <a href="mlworker.js" download>mlworker.js</a>) in the same directory. In addition, the relative path to these files from the html page must be supplied as <code>var lab = new Lalolab("labname", false, path_to_lalolib ) ;</code> or <code>var lab = new MLlab("labname", path_to_mljs ) ;</code>.
 </p>
 <button onclick="ex2();">Run example 2: create a large random matrix and compute its singular values</button> <br>
 <pre id="pre2">
@@ -478,7 +478,7 @@ LALOLib and LALOLab can be easily extended with new toolboxes, as detailed <a hr
 <h2 id="ml">Using the machine learning functions (ML.js)</h2>
 
 <p>
-<strong>ML.js</strong> extends LALOLib with machine learning functions. Many examples can be found in the API reference below and the online help of <a href="index.html">LALOLab</a>. 
+<strong>ML.js</strong> extends LALOLib with machine learning functions. Many examples can be found in the API reference below and the online help of <a href="index.html">LALOLab</a>. You can also look at a few <a href="http://mlweb.loria.fr/demos/">online demos and tutorials</a>.
 </p>
 <p>
 For supervised learning, predictive models are created with a <i>new</i> statement. For instance,

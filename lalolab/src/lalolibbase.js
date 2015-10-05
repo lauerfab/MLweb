@@ -1303,11 +1303,11 @@ function removeSpaces( str ) {
 ////////////////////////////
 /// Lab 
 ////////////////////////////
-function MLlab ( id ) {
-	var that = new Lalolab ( id, true);	
+function MLlab ( id , path ) {
+	var that = new Lalolab ( id, true, path);	
 	return that;
 }
-function Lalolab ( id, mllab ) {
+function Lalolab ( id, mllab , path ) {
 	// constructor for a Lab with independent scope running in a worker
 	this.id = id;
 	
@@ -1315,16 +1315,27 @@ function Lalolab ( id, mllab ) {
 	
 	// Create worker with a Blob  to avoid distributing lalolibworker.js 
 	// => does not work due to importScripts with relative path to the Blob unresolved (or cross-origin)
-	//var blob = new Blob(["importScripts(\"lalolib.js\");\n onmessage = function ( WorkerEvent ) {\n var WorkerCommand = WorkerEvent.data.cmd;\n var mustparse = WorkerEvent.data.parse;\n if ( mustparse ) \n var res = lalo(WorkerCommand);\n else { \n if ( WorkerCommand == \"load_mat\" ) {\n var res = mat(WorkerEvent.data.data, true);\n eval(WorkerEvent.data.varname + \"=res\");\n}\n else\n var res = self.eval( WorkerCommand ) ;\n}\n postMessage( { \"cmd\" : WorkerCommand, \"output\" : res } );\n}"]);
-	//var blobURL = window.URL.createObjectURL(blob);
-	//this.worker = new Worker(blobURL);
 	
+	if ( typeof(path) == "undefined" )
+		var path = "http://mlweb.loria.fr/";
+	else {
+		if (path.length > 0 && path[path.length-1] != "/" )
+			path = [path,"/"].join("");
+	}
+		
 	if ( typeof(mllab) != "undefined" && mllab ) {
-		this.worker = new Worker("mlworker.js"); // need mlworker.js in same directory as web page
+		this.worker = new Worker(path+"mlworker.js"); // need mlworker.js in same directory as web page
 		this.labtype = "ml";
+		/* Using a Blob to avoid distributing mlworker.js: 
+		 	does not work because of importScripts from cross origin...
+		var workerscript = "importScripts(\"ml.js\");\n onmessage = function ( WorkerEvent ) {\n	var WorkerCommand = WorkerEvent.data.cmd;var mustparse = WorkerEvent.data.parse; \n if ( mustparse )\n	var res = lalo(WorkerCommand);\n 	else {\n	if ( WorkerCommand == \"load_mat\" ) {\n	if ( type(WorkerEvent.data.data) == \"matrix\" )\n var res = new Matrix(WorkerEvent.data.data.m,WorkerEvent.data.data.n,WorkerEvent.data.data.val, true);\nelse\n 	var res = mat(WorkerEvent.data.data, true);\n	eval(WorkerEvent.data.varname + \"=res\");\n}\n else\n var res = self.eval( WorkerCommand ) ;\n}\n try {\n	postMessage( { \"cmd\" : WorkerCommand, \"output\" : res } );\n} catch ( e ) {\n try {\n postMessage( { \"cmd\" : WorkerCommand, \"output\" : res.info() } );\n	} catch(e2) { \n postMessage( { \"cmd\" : WorkerCommand, \"output\" : undefined } );\n}\n}\n}";
+		var blob = new Blob([workerscript], { "type" : "text/javascript" });
+		var blobURL = window.URL.createObjectURL(blob);
+		console.log(blobURL);
+		this.worker = new Worker(blobURL);*/
 	}
 	else {
-		this.worker = new Worker("lalolibworker.js"); // need lalolibworker.js in same directory as web page
+		this.worker = new Worker(path+"lalolibworker.js"); // need lalolibworker.js in same directory as web page
 		this.labtype = "lalo";
 	}
 	this.worker.onmessage = this.onresult; 
