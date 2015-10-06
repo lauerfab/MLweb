@@ -5164,7 +5164,7 @@ e = norm(A*xh - b)
 	rhoc = dot(r,r);
 
 	var k = 1;
-	var tau;
+
 	var updateP = function (tau, r) {
 		for ( var i=0; i < m; i++)
 			p[i] = r[i] + tau * p[i];
@@ -5237,7 +5237,7 @@ e = norm(A*xh - b)
 	rhoc = dot(z,z);
 
 	var k = 1;
-	var tau;
+
 	var updateP = function (tau, z) {
 		for ( var i=0; i < m; i++)
 			p[i] = z[i] + tau * p[i];

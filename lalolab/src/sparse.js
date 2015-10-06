@@ -531,13 +531,13 @@ function mulspMatrixVector (A, b) {
 	const m = A.m;
 	const n = A.n;
 	var c = zeros(m);
-	if ( A.rowsparse) {
+	if ( A.rowmajor) {
 		for(var i=0; i < m; i++) {
 			var s = A.rows[i];
 			var e = A.rows[i+1];
 			for(var k = s; k < e; k++) {
 				c[i] += A.val[k] * b[A.cols[k]];
-			}			
+			}
 		}
 	}
 	else {
@@ -592,7 +592,7 @@ function mulspMatrixspVector (A, b) {
 	const n = A.n;
 	var c = zeros(m);
 	const nnzb = b.val.length;
-	if ( A.rowsparse) {
+	if ( A.rowmajor) {
 		for(var i=0; i < m; i++) {
 			c[i] = spdot(A.row(i), b);
 		}
@@ -1464,7 +1464,7 @@ function spsolvecg ( A, b) {
 	rhoc = dot(r,r);
 
 	var k = 1;
-	var tau;
+
 	var updateP = function (tau, r) {
 		for ( var i=0; i < m; i++)
 			p[i] = r[i] + tau * p[i];
@@ -1525,7 +1525,7 @@ e = norm(A*xh - b)
 	rhoc = dot(z,z);
 
 	var k = 1;
-	var tau;
+
 	var updateP = function (tau, z) {
 		for ( var i=0; i < m; i++)
 			p[i] = z[i] + tau * p[i];
