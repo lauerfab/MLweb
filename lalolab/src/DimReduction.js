@@ -298,7 +298,7 @@ LLE.prototype.train = function ( X ) {
 			I_W.val[ri + neighbors[j] ] -= w[j] / sumw;	
 	}
 	
-	var usv = svd(I_W, true); // eigenvectors of M=(I-W)'(I-W) are singular vectors of (I-W)
+	var usv = svd(I_W, "V"); // eigenvectors of M=(I-W)'(I-W) are singular vectors of (I-W)
 	var Xreduced = get(usv.V, [], range(N-this.dimension-1, N-1) ); // get d first eigenvectors in the d+1 last (bottom) eigenvectors
 	
 	/* should do this faster as below, but eigs fails due to difficulties with inverse iterations to yield orthogonal eigenvectors for the bottom eigenvalues that are typically very close to each other
@@ -336,7 +336,7 @@ function ltsa( X , dim, K ) {
 
         // Compute dim largest eigenvalues of Xi Xi'
 		if (usesvd) 
-    	    U = getCols(svd(Xi, true).U, range(dim));
+    	    U = getCols(svd(Xi, "U").U, range(dim));
 	    else 
 	        U = eigs(mulMatrixMatrix(Xi,transposeMatrix(Xi)) , dim);
         
@@ -352,7 +352,7 @@ function ltsa( X , dim, K ) {
         	B.val[neighbors[j]*N + neighbors[j]] += 1;
         }
 	}
-	var usv = svd(B, true); // eigenvectors of B are also singular vectors...
+	var usv = svd(B, "V"); // eigenvectors of B are also singular vectors...
 	var Xreduced = get(usv.V, [], range(N-dim-1, N-1) ); // get d first eigenvectors in the d+1 last (bottom) eigenvectors
 	return Xreduced;
 }

@@ -4832,7 +4832,7 @@ function qr( A, compute_Q ) {
 	var normR22 = normA;
 	var Rij;
 	
-	const TOL = 1e-6;
+	const TOL = 1e-5;
 	var TOLnormR22square = TOL * normA;
 	TOLnormR22square *= TOLnormR22square;
 	
@@ -4888,13 +4888,15 @@ function qr( A, compute_Q ) {
 		//normR22 = norm(get ( R, range(r+1,n), range(r+1,m), ) );
 		var normR22 = 0;
 		var i = r+1;
+		var ri = i*m;
 		var j;
 		while ( i < n && normR22 <= TOLnormR22square ) {
 			for ( j=r+1; j < m; j++) {
-				var Rij = R.val[i * m + j];
+				var Rij = R.val[ri + j];
 				normR22 += Rij*Rij;
 			}
 			i++;
+			ri += m;
 		}
 		return normR22;
 	}
@@ -4910,7 +4912,7 @@ function qr( A, compute_Q ) {
 		c[r] = tau;		
 
 		if ( r < m-1) {
-			householder = house( R.val.subarray(r*R.n + r,r*R.n + m) ); // house only reads vec so subarray is ok // getSubVector( R[r], range(r,m) ) );
+			householder = house( R.val.subarray(r*R.n + r,r*R.n + m) ); // house only reads vec so subarray is ok
 		}
 		else {
 			householder.v = [1];
@@ -5348,11 +5350,29 @@ function tridiagonalize( A, returnQ ) {
 		}
 	}
 	if ( returnQ ) {
+		var updateQ = function(j, v, b) {
+			// Q = Q - b* v (Q'v)'
+			//smallQ =  get(Q, range(j,n), range(j,n) );// matrix
+			//set ( Q, range(j,n), range(j,n) , subMatrices (  smallQ , outerprodVectors(  V[k], mulMatrixVector( transposeMatrix(smallQ), V[k]), beta[k] ) ) );			
+			var i,k;
+			var Qtv = zeros(n-j);
+			for ( i=j; i<n; i++) {
+				var Qi = i*n;
+				for ( k=j;k<n; k++) 
+					Qtv[k-j] += v[i-j] * Q.val[Qi + k];
+			}
+			for ( i=j; i < n; i++) {
+				var Qi = i*n;
+				var betavk = b * v[i-j];				
+				for ( k=j; k < n ; k++) {
+					Q.val[Qi + k] -= betavk * Qtv[k-j];
+				}
+			}
+		};
+		
 		// Backaccumulation of Q
 		for ( k=n-3; k >=0; k--) {
-			var j = k+1;
-			smallQ =  get(Q, range(j,n), range(j,n) );// matrix
-			set ( Q, range(j,n), range(j,n) , subMatrices (  smallQ , outerprodVectors(  V[k], mulMatrixVector( transposeMatrix(smallQ), V[k]), beta[k] ) ) );			
+			updateQ(k+1,V[k], beta[k]);
 		}
 		return Q;
 	}
@@ -5451,7 +5471,8 @@ function postmulGivens ( c, s, i, k, A) {
 
 function implicitSymQRWilkinsonShift( T , computeZ) {
 	// compute T = Z' T Z
-	// if computeZ:  return {T,Z} such that T = Z' T Z 
+	// if computeZ:  return {T,cs} such that T = Z' T Z  with Z = G1.G2... 
+	// and givens matrices Gk of parameters cs[k]
 
 	const n = T.length;
 	const rn2 = n*(n-2);
@@ -5464,9 +5485,10 @@ function implicitSymQRWilkinsonShift( T , computeZ) {
 	var z = T.val[n];		// T[1][0]
 	var cs;
 	if ( computeZ)
-		var Z = eye(n);
+		var csArray = new Array(n-1);
+		//var Z = eye(n);
 		
-	var k;
+	var k;	
 	for ( k = 0; k < n-1; k++) {
 		/*
 		G = givens(x,z, k, k+1, n);
@@ -5479,7 +5501,8 @@ function implicitSymQRWilkinsonShift( T , computeZ) {
 		postmulGivens(cs[0], cs[1], k, k+1, T);
 		premulGivens(cs[0], cs[1], k, k+1, T);
 		if( computeZ )
-			postmulGivens(cs[0], cs[1], k, k+1, Z);
+			csArray[k] = [cs[0], cs[1]];
+			//postmulGivens(cs[0], cs[1], k, k+1, Z);
 		
 		if ( k < n-2 ) {
 			var r = n*(k+1) + k;
@@ -5487,8 +5510,10 @@ function implicitSymQRWilkinsonShift( T , computeZ) {
 			z = T.val[r + n]; // [k+2][k];
 		}
 	}
-	if ( computeZ)
-		return {"T": T, "Z": Z} ;
+	if ( computeZ) {
+		return {"T": T, "cs": csArray} ;
+//		return {"T": T, "Z": Z} ;
+	}
 	else 
 		return T;
 }
@@ -5504,9 +5529,7 @@ function eig( A , computeEigenvectors ) {
 	}
 	else {
 		D = tridiagonalize( A ); 
-	}
-	
-	var DZ22;
+	}	
 	
 	var q;
 	var p;
@@ -5552,11 +5575,14 @@ function eig( A , computeEigenvectors ) {
 		if ( q < n ) {
 			
 			if ( computeEigenvectors ) {
-				DZ22 = implicitSymQRWilkinsonShift( get ( D, range(p,n-q), range(p,n-q)), true);
-				set( D, range(p,n-q), range(p,n-q), DZ22.T );
-				Z = eye(n);
-				set(Z, range(p,n-q), range(p,n-q), DZ22.Z );
-				Q = mulMatrixMatrix ( Q, Z );	
+				var res = implicitSymQRWilkinsonShift( get ( D, range(p,n-q), range(p,n-q)), true);
+				set( D, range(p,n-q), range(p,n-q), res.T );
+				for ( var kk = 0; kk < n-q-p-1; kk++)
+					postmulGivens(res.cs[kk][0], res.cs[kk][1], p+kk, p+kk+1, Q);
+				//Z = eye(n);
+				//set(Z, range(p,n-q), range(p,n-q), DZ22.Z );
+				// Q = mulMatrixMatrix ( Q, Z );	
+				
 			}
 			else {
 				set( D, range(p,n-q), range(p,n-q), implicitSymQRWilkinsonShift( get ( D, range(p,n-q), range(p,n-q)) , false)) ;
@@ -5920,8 +5946,9 @@ b=bidiagonalize(A,true)
 		}
 		for ( i=j; i < m; i++) {
 			var betavk = beta * v[i-j];
+			var Bi = i*n;
 			for ( k=j; k < n ; k++) {
-				B.val[i*n + k] -= betavk * Btv[k-j];
+				B.val[Bi + k] -= betavk * Btv[k-j];
 			}
 		}
 	};
