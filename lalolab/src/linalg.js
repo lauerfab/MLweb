@@ -5901,46 +5901,98 @@ b=bidiagonalize(A,true)
 	
 	var householder; 
 	
-	var Bjmj;
-	var Bjmjn;
-
 	if ( storeUV ) {
 		var U = eye(m);
-		var V = eye(n);
-		var smallU;
-		var smallV;
+		var V = eye(n);		
 	}
+	
+	
+	var updateB1 = function (j, v, beta) {
+		// B = B - (beta v) ( v'* B) = B-outer(beta v, B'*v)
+		//Bjmjn = get ( B, range(j,m), range(j, n));
+		//set ( B, range(j,m), range(j,n), sub ( Bjmjn , outerprod ( householder.v, mul(transpose(Bjmjn), householder.v), householder.beta) ) );
+			
+		var i,k;
+		var Btv = zeros(n-j);
+		for ( i=j; i<m; i++) {
+			for ( k=j;k<n; k++) 
+				Btv[k-j] += v[i-j] * B.val[i*n + k];
+		}
+		for ( i=j; i < m; i++) {
+			var betavk = beta * v[i-j];
+			for ( k=j; k < n ; k++) {
+				B.val[i*n + k] -= betavk * Btv[k-j];
+			}
+		}
+	};
+	var updateB2 = function (j, v, beta) {
+		// B = B - beta (Bv) v' (with B = B_j:m, j+1:n)
+
+		//Bjmjn = get ( B, range(j,m), range(j+1, n));
+		//set ( B, range(j,m), range(j+1,n) , sub( Bjmjn, outerprod( mul(Bjmjn, householder.v), householder.v, householder.beta) ) );		
+		var i,k;	
+		for ( i=j; i < m; i++) {
+			var Bi = i*n;
+			var Bv = 0;
+			for ( k=j+1;k<n; k++) 
+				Bv += B.val[Bi + k] *  v[k-j-1] ;
+			var betaBvk = beta * Bv;
+			for ( k=j+1; k < n ; k++) {
+				B.val[Bi + k] -= betaBvk * v[k-j-1];
+			}
+		}
+	};
+	var updateU = function (j, v, beta) {
+		//smallU = get ( U, range(j,m), range(0, m));
+		//set (U , range(j,m), range(0,m), sub ( smallU , outerprod ( householder.v, mul(transpose(smallU), householder.v), householder.beta) ) );
+		var i,k;
+		var Utv = zeros(m);
+		for ( i=j; i<m; i++) {
+			for ( k=0;k<m; k++) 
+				Utv[k] += v[i-j] * U.val[i*m + k];
+		}
+		for ( i=j; i < m; i++) {
+			var betavk = beta * v[i-j];
+			for ( k=0; k < m ; k++) {
+				U.val[i*m + k] -= betavk * Utv[k];
+			}
+		}
+	};
+	var updateV = function (j, v, beta) {
+		//smallV = get ( V, range(0,n), range(j+1, n));
+		//set ( V, range(0,n), range(j+1,n) , sub( smallV, outerprod( mul(smallV, householder.v), householder.v, householder.beta) ) );	
+		var i,k;	
+		for ( i=0; i < n; i++) {
+			var Vi = i*n;
+			var Vv = 0;
+			for ( k=j+1;k<n; k++) 
+				Vv += V.val[Vi + k] *  v[k-j-1] ;
+			var betaVvk = beta * Vv;
+			for ( k=j+1; k < n ; k++) {
+				V.val[Vi + k] -= betaVvk * v[k-j-1];
+			}
+		}
+	};
 	
 	for (j=0; j < n ; j++) {
 				
 		if ( j < m-1)  {
 			householder = house( get ( B, range(j, m), j) );
-			// B = B - (beta v) ( v'* B) = B-outer(beta v, B'*v)
-			Bjmjn = get ( B, range(j,m), range(j, n));
-			set ( B, range(j,m), range(j,n), sub ( Bjmjn , outerprod ( householder.v, mul(transpose(Bjmjn), householder.v), householder.beta) ) );
 			
-			if ( storeUV ) {
-
-				smallU = get ( U, range(j,m), range(0, m));
-				set (U , range(j,m), range(0,m), sub ( smallU , outerprod ( householder.v, mul(transpose(smallU), householder.v), householder.beta) ) );
-
-				//print(U,"U");
-				//print(mul(mul(U,A),V), "UAV");
-				//print(B,"B");tr
+			updateB1(j, householder.v, householder.beta);
+			
+			if ( storeUV ) {				
+				updateU(j, householder.v, householder.beta);
 			}
 		}
 				
 		if ( j < n-2) {
-			householder = house ( transpose(get ( B, j, range(j+1, n)) ) );
-
-			Bjmjn = get ( B, range(j,m), range(j+1, n));
-
-			// B = B - beta (Bv) v'
-			set ( B, range(j,m), range(j+1,n) , sub( Bjmjn, outerprod( mul(Bjmjn, householder.v), householder.v, householder.beta) ) );		
-				
+			householder = house ( B.row(j).subarray(j+1, n) ) ;
+			
+			updateB2(j, householder.v, householder.beta);
+			
 			if( storeUV) {
-				smallV = get ( V, range(0,n), range(j+1, n));
-				set ( V, range(0,n), range(j+1,n) , sub( smallV, outerprod( mul(smallV, householder.v), householder.v, householder.beta) ) );
+				updateV(j, householder.v, householder.beta);
 			
 			}	
 		}		
@@ -5954,7 +6006,7 @@ b=bidiagonalize(A,true)
 
 
 function GolubKahanSVDstep ( B, computeUV ) {
-
+	// Note: working on Utrans
 	if (type ( B ) != "matrix" ) 
 		return B;
 
@@ -5988,38 +6040,32 @@ function GolubKahanSVDstep ( B, computeUV ) {
 	var cs;
 	
 	if ( computeUV) {
-		var U = eye(m);
-		var V = eye(n);
+		//var U = eye(m);
+		//var V = eye(n);
+		var csU = new Array(n-1);
+		var csV = new Array(n-1);		
 	}
 
 	for ( k = 0; k < n-1 ; k++) {
-		/*G = givens(y,z, k, k+1, n);
-		B = mul(B, G) ;
-		if ( computeUV) {
-			V = mul(V, G);
-		}
-		*/
 		cs = givens(y,z);
 		postmulGivens(cs[0],cs[1], k, k+1, B);
-		if ( computeUV ) 
-			postmulGivens(cs[0],cs[1], k, k+1, V);
+		
+		if ( computeUV ) {
+			csV[k] = [cs[0], cs[1]];
+			//	postmulGivens(cs[0],cs[1], k, k+1, V);
+		}
 			
 			
 		y = B.val[k*n+k];
 		z = B.val[(k+1)*n+k];
-		
-		/*
-		G = givens(y,z, k, k+1, m);
-		B = mul( transpose(G), B ) ;
-		if ( computeUV) {
-			U = mul(transpose(G), U);
-		}
-		*/
+			
 		cs = givens(y,z);
 		premulGivens(cs[0],cs[1], k, k+1, B);
-		if ( computeUV ) 
-			premulGivens(cs[0],cs[1], k, k+1, U);
-		
+	
+		if ( computeUV ) {
+			csU[k] = [cs[0], cs[1]];
+			//premulGivens(cs[0],cs[1], k, k+1, U);
+		}
 
 		if ( k < n-2 ) {
 			y = B.val[k*n + k+1];
@@ -6028,11 +6074,8 @@ function GolubKahanSVDstep ( B, computeUV ) {
 			
 	}
 
-	if ( computeUV) {
-		return {"U": U, "V": V, "B": B} ; // U is already transposed
-	}
-	else 
-		return B;
+	if ( computeUV) 
+		return {csU: csU, csV: csV};
 }
 function svd( A , computeUV ) {
 /* TEST:
@@ -6052,16 +6095,55 @@ should return [ 817.7597, 2.4750, 0.0030]
 		m = At.length;
 	}
 	
-	if ( computeUV) {
-		var UBV;
-		
-		if ( Atransposed ) 
+	var computeU = false;
+	var computeV = false; 
+	var thinU = false;
+	if ( typeof( computeUV) != "undefined" && computeUV!==false)  {
+	
+		if ( computeUV === true || computeUV === "full" ) {
+			computeU = true; 
+			computeV = true;
+			thinU = false;
+		}
+		else if ( computeUV === "thin" ) {
+			computeU = true; 
+			computeV = true;
+			thinU = true;
+		}
+		else if ( typeof(computeUV) == "string") {
+			if ( computeUV.indexOf("U") >=0 )
+				computeU = true;
+			if ( computeUV.indexOf("V") >=0 )
+				computeV = true;
+			if ( computeUV.indexOf("thin") >=0 )
+				thinU = true;
+		}
+		var UBV;		
+		if ( Atransposed ) {
 			UBV = bidiagonalize( At, true );
+			var tmp = computeU;
+			computeU = computeV;
+			computeV = tmp;
+		}
 		else
-			UBV =  bidiagonalize( matrixCopy(A), true );
-		var U = UBV.U;//Utrans
-		var V = UBV.V;
-		var Vt = transposeMatrix(V);
+			UBV =  bidiagonalize( A, true );
+		console.log(UBV);
+		if ( computeU ) {
+			if ( thinU )
+				var U = getRows(UBV.U, range(0,n));//Utrans
+			else
+				var U = UBV.U;//Utrans
+		}
+		else
+			var U = undefined;
+			
+		if( computeV ) {	
+			var V = UBV.V;
+			var Vt = transposeMatrix(V);
+		}
+		else
+			var V = undefined;
+		
 		var B = UBV.B;
 	}
 	else {
@@ -6120,33 +6202,21 @@ should return [ 817.7597, 2.4750, 0.0030]
 				
 				if ( DiagonalofB22isZero < n-q-1 ) {		
 					// Zero B(k,k+1) and entire row k...
-		      		for (j=DiagonalofB22isZero+1; j < n; j++) {
-						/*
-						G = givens(- B[j][j] , B[DiagonalofB22isZero][j], DiagonalofB22isZero, j,  n) 
-						B = mul(transpose(G), B);
-						if ( computeUV) {
-							U = mul(transpose(G), U);
-						}*/
+		      		for (j=DiagonalofB22isZero+1; j < n; j++) {	
 
 						cs = givens(- B.val[j*B.n + j] , B.val[DiagonalofB22isZero * B.n + j] );
 						premulGivens(cs[0],cs[1], DiagonalofB22isZero, j, B);
-						if ( computeUV ) 
+						if ( computeU ) 
 							premulGivens(cs[0],cs[1], DiagonalofB22isZero, j, U);								
 					}
 				}
 				else {	
 					// Zero B(k-1,k) and entire row k...
 		      		for (j=DiagonalofB22isZero - 1; j >= p; j--) {
-						/*
-						G = givens( B[j][j] , B[j][n-q-1], j, n-q-1,  n) 
-						B = mul(B, G);
-						if ( computeUV ) {
-						 	V = mul(V, G);
-						}*/
 						 
 						cs = givens(B.val[j*B.n * j] , B.val[j*B.n + n-q-1] );
 						postmulGivens(cs[0],cs[1], j, n-q-1, B);
-						if ( computeUV ) 
+						if ( computeV ) 
 							premulGivens(cs[0],cs[1], j, n-q-1, Vt);
 //							postmulGivens(cs[0],cs[1], j, n-q-1, V);
 		
@@ -6157,27 +6227,22 @@ should return [ 817.7597, 2.4750, 0.0030]
 			else {
 				B22 = get ( B, range(p , n - q ) , range (p , n-q ) );			
 				if ( computeUV ) {
-					UBV = GolubKahanSVDstep( B22, true ) ;
-					/*
-					U22 = eye(m); 
-					set( U22, range(p,n-q), range(p,n-q), UBV.U);
-					U = mul(U22, U) ;
-					*/
-					set ( U, range(p,n-q), [], mul(UBV.U, get(U, range(p,n-q), []) ) );
-					/*
-					V22 = eye(n);
-					set ( V22, range(p,n-q), range(p,n-q), UBV.V);
-					V = mul(V,V22);
-					*/
-					set ( Vt, range(p,n-q), [], mul(transpose(UBV.V), getRows(Vt, range(p,n-q)) ) );
-										
-					B22 = UBV.B;				
+					// UBV = GolubKahanSVDstep( B22, true ) ;
+					// set ( U, range(p,n-q), [], mul(UBV.U, get(U, range(p,n-q), []) ) );
+					// set ( Vt, range(p,n-q), [], mul(transpose(UBV.V), getRows(Vt, range(p,n-q)) ) );
+
+					var GKstep = GolubKahanSVDstep( B22, true ) ;// this updates B22 in place
+					for ( var kk=0; kk < B22.n-1; kk++) {
+						if ( computeU )
+							premulGivens(GKstep.csU[kk][0], GKstep.csU[kk][1], p+kk, p+kk+1, U);
+						if ( computeV )
+							premulGivens(GKstep.csV[kk][0], GKstep.csV[kk][1], p+kk, p+kk+1, Vt); // premul because Vtransposed
+					}												
 				}
 				else {
-					B22 = GolubKahanSVDstep( B22 ) ;
+					GolubKahanSVDstep( B22 ) ;
 				}
-				set ( B , range(p , n - q ) , range (p , n-q ), B22  );
-			
+				set ( B , range(p , n - q ) , range (p , n-q ), B22  );			
 			}		
 		}
 
@@ -6185,33 +6250,55 @@ should return [ 817.7597, 2.4750, 0.0030]
 
 	if (computeUV ) {
 	
-		V = transposeMatrix(Vt);
+		if ( computeV)
+			V = transposeMatrix(Vt);
 	
 		// Correct sign of singular values:
 		var s = diag(B);
 		var signs = zeros(n);
 		for ( i=0; i< n; i++) {
 			if (s[i] < 0) {
-				set(V, [], i, minus(get(V,[],i)));
+				if ( computeV )
+					set(V, [], i, minus(get(V,[],i)));
 				s[i] = -s[i];
 			}
 		}
 
 		// Rearrange in decreasing order: 
 		var indexes = sort(s,true, true);
-		V = get( V, [], indexes);
-		U = get(U, indexes,[]) ;
+		if(computeV)
+			V = get( V, [], indexes);
+		if(computeU) {
+			if ( !thinU) {
+				for ( i=n; i < m; i++)
+					indexes.push(i);
+			}
+			U = get(U, indexes,[]) ;
+		}
 		
-		var S = diag(s) ;
-		
-		if ( Atransposed ) 
-			return { "U" : V, "S" : transpose(S), "V" : transpose(U), "s" : s };			
+		if ( thinU )
+			var S = diag(s) ;
 		else
-			return { "U" : transpose(U), "S" : S, "V" : V, "s" : s };
+			var S = mat([diag(s), zeros(m-n,n)],true) ;
+		
+		var Ut = undefined;
+		if ( computeU )
+			Ut = transpose(U);
+			
+		if ( Atransposed ) {
+			if ( thinU )
+				return { "U" : V, "S" : S, "V" : Ut, "s" : s };			
+			else
+				return { "U" : V, "S" : transpose(S), "V" : Ut, "s" : s };
+		}		
+		else {
+			return { "U" : Ut, "S" : S, "V" : V, "s" : s };
+		}
 	}
 	else 
 		return sort(abs(diag(B)), true);
 }
+
 
 function rank( A ) {
 	const s = svd(A);
@@ -6226,7 +6313,7 @@ function rank( A ) {
 
 function nullspace( A ) {
 	// Orthonormal basis for the null space of A
-	const s = svd( A, true ) ; 
+	const s = svd( A, "thinV" ) ; 
 	const n = A.n;
 
 	var rank = 0;
@@ -6243,7 +6330,7 @@ function nullspace( A ) {
 
 function orth( A ) {
 	// Orthonormal basis for the range of A
-	const s = svd( A, true ) ; 
+	const s = svd( A, "thinU" ) ; 
 	const n = A.n;
 
 	var rank = 0;
