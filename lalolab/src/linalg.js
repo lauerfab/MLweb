@@ -4454,7 +4454,8 @@ function solveGaussianElimination(Aorig, borig) {
 		var Akk = Ak[k];
 		b[k] /= Akk;
 		
-		for ( j=k; j < n; j++) 
+		//Ak[k] = 1; // not used afterwards
+		for ( j=k+1; j < n; j++) 
 			Ak[j] /= Akk;
 		
 		if ( Math.abs(Akk) < 1e-8 ) {
@@ -4463,17 +4464,17 @@ function solveGaussianElimination(Aorig, borig) {
 			
 		// Substract the kth row from others to get 0s in kth column
 		var Aik ;			
+		var bk = b[k];
 		for ( i=0; i< m; i++) {
 			if ( i != k ) {
-				Aik = A[i][k];
-				if ( ! isZero(Aik) ) {
-					for ( j=k; j < n; j++) {
-						A[i][j] -= Aik * Ak[j]; 						
-					}
-					b[i] -= Aik * b[k];
+				var Ai = A[i]; 
+				Aik = Ai[k];
+				for ( j=k+1; j < n; j++) { // Aij = 0  with j < k and Aik = 0 after this operation but is never used
+					Ai[j] -= Aik * Ak[j]; 						
 				}
+				b[i] -= Aik * bk;				
 			}
-		}		
+		}	
 	}
 
 	// Solution: 
@@ -4852,14 +4853,16 @@ function qr( A, compute_Q ) {
 		// set ( R, range(r,n), range(r,m) , subMatrices (  smallR , outerprodVectors( mulMatrixVector( smallR, householder.v), householder.v,  householder.beta ) ) ) ;
 		// most of the time is spent here... 
 		var i,j,l;
+		var m_r = m-r;
 		for ( i=r; i < n; i++) {
 			var smallRiv = 0;
-			var Ri = i*m; // =  i * R.n
-			for ( l = r ; l < m ; l ++) 
-				smallRiv += R.val[Ri + l] * v[l-r];
+			var Ri = i*m + r; // =  i * R.n + r
+			var Rval = R.val.subarray(Ri,Ri+m_r);
+			for ( l = 0 ; l < m_r ; l ++) 
+				smallRiv += Rval[l] * v[l];	//smallRiv += R.val[Ri + l] * v[l];
 			smallRiv *= beta ;
-			for ( j=r; j < m ; j ++) {
-				R.val[Ri + j] -= smallRiv * v[j-r];
+			for ( j=0; j < m_r ; j ++) {
+				Rval[j] -= smallRiv * v[j]; // R.val[Ri + j] -= smallRiv * v[j];
 			}
 		}
 	};
@@ -4927,8 +4930,11 @@ function qr( A, compute_Q ) {
 		else {
 			// smallR is a row vector (or a number if m=n):	
 			if ( r < m-1) {
-				smallR = get(R, r, range(r,m) );
-				set ( R, r , range(r,m), sub (  smallR , transpose(mul( householder.beta * mul( smallR, householder.v) ,householder.v  ) )) ) ;
+				updateR(r, householder.v, householder.beta);
+			/*
+				var r_to_m = range(r,m);
+				smallR = get(R, r, r_to_m);
+				set ( R, r , r_to_m, sub (  smallR , transpose(mul( householder.beta * mul( smallR, householder.v) ,householder.v  ) )) ) ;*/
 			}
 			else {
 				//var smallRnumber = R.val[(m-1)*R.n + m-1]; // beta is zero, so no update
@@ -4963,8 +4969,9 @@ function qr( A, compute_Q ) {
 				Q.val[j*m+j] -=  beta[j] * V[j][0] * V[j][0] * Q.val[j*m+j];
 			}
 			else {
-				smallQ =  get(Q, range(j,m), range(j,m) );// matrix
-				set ( Q, range(j,m), range(j,m) , subMatrices (  smallQ , outerprodVectors(  V[j], mulMatrixVector( transposeMatrix(smallQ), V[j]), beta[j] ) ) );
+				var j_to_m = range(j,m);
+				smallQ =  get(Q, j_to_m, j_to_m );// matrix
+				set ( Q, j_to_m, j_to_m, subMatrices (  smallQ , outerprodVectors(  V[j], mulMatrixVector( transposeMatrix(smallQ), V[j]), beta[j] ) ) );
 			}
 		}
 	}
@@ -5356,16 +5363,17 @@ function tridiagonalize( A, returnQ ) {
 			//set ( Q, range(j,n), range(j,n) , subMatrices (  smallQ , outerprodVectors(  V[k], mulMatrixVector( transposeMatrix(smallQ), V[k]), beta[k] ) ) );			
 			var i,k;
 			var Qtv = zeros(n-j);
-			for ( i=j; i<n; i++) {
-				var Qi = i*n;
-				for ( k=j;k<n; k++) 
-					Qtv[k-j] += v[i-j] * Q.val[Qi + k];
+			var n_j = n-j;
+			for ( i=0; i<n_j; i++) {
+				var Qi = (i+j)*n + j;
+				for ( k=0;k<n_j; k++) 
+					Qtv[k] += v[i] * Q.val[Qi + k];
 			}
-			for ( i=j; i < n; i++) {
-				var Qi = i*n;
-				var betavk = b * v[i-j];				
-				for ( k=j; k < n ; k++) {
-					Q.val[Qi + k] -= betavk * Qtv[k-j];
+			for ( i=0; i < n_j; i++) {
+				var Qi = (i+j)*n + j;
+				var betavk = b * v[i];				
+				for ( k=0; k < n_j ; k++) {
+					Q.val[Qi + k] -= betavk * Qtv[k];
 				}
 			}
 		};
@@ -5940,15 +5948,18 @@ b=bidiagonalize(A,true)
 			
 		var i,k;
 		var Btv = zeros(n-j);
-		for ( i=j; i<m; i++) {
-			for ( k=j;k<n; k++) 
-				Btv[k-j] += v[i-j] * B.val[i*n + k];
+		var n_j = n-j;
+		var m_j = m-j;
+		for ( i=0; i<m_j; i++) {
+			var Bi = (i+j)*n + j;
+			for ( k=0;k<n_j; k++) 
+				Btv[k] += v[i] * B.val[Bi+k];
 		}
-		for ( i=j; i < m; i++) {
-			var betavk = beta * v[i-j];
-			var Bi = i*n;
-			for ( k=j; k < n ; k++) {
-				B.val[Bi + k] -= betavk * Btv[k-j];
+		for ( i=0; i < m_j; i++) {
+			var betavk = beta * v[i];
+			var Bi = (i+j)*n + j;
+			for ( k=0; k < n_j ; k++) {
+				B.val[Bi+k] -= betavk * Btv[k];
 			}
 		}
 	};
@@ -5958,14 +5969,15 @@ b=bidiagonalize(A,true)
 		//Bjmjn = get ( B, range(j,m), range(j+1, n));
 		//set ( B, range(j,m), range(j+1,n) , sub( Bjmjn, outerprod( mul(Bjmjn, householder.v), householder.v, householder.beta) ) );		
 		var i,k;	
+		var n_j_1 = n-j-1;
 		for ( i=j; i < m; i++) {
-			var Bi = i*n;
+			var Bi = i*n + j + 1;
 			var Bv = 0;
-			for ( k=j+1;k<n; k++) 
-				Bv += B.val[Bi + k] *  v[k-j-1] ;
+			for ( k=0;k<n_j_1; k++) 
+				Bv += B.val[Bi + k] *  v[k] ;
 			var betaBvk = beta * Bv;
-			for ( k=j+1; k < n ; k++) {
-				B.val[Bi + k] -= betaBvk * v[k-j-1];
+			for ( k=0; k < n_j_1 ; k++) {
+				B.val[Bi + k] -= betaBvk * v[k];
 			}
 		}
 	};
@@ -5975,13 +5987,16 @@ b=bidiagonalize(A,true)
 		var i,k;
 		var Utv = zeros(m);
 		for ( i=j; i<m; i++) {
+			var Ui = i*m;
+			var i_j = i-j;
 			for ( k=0;k<m; k++) 
-				Utv[k] += v[i-j] * U.val[i*m + k];
+				Utv[k] += v[i_j] * U.val[Ui + k];
 		}
 		for ( i=j; i < m; i++) {
 			var betavk = beta * v[i-j];
+			var Ui = i*m;		
 			for ( k=0; k < m ; k++) {
-				U.val[i*m + k] -= betavk * Utv[k];
+				U.val[Ui + k] -= betavk * Utv[k];
 			}
 		}
 	};
@@ -5989,14 +6004,15 @@ b=bidiagonalize(A,true)
 		//smallV = get ( V, range(0,n), range(j+1, n));
 		//set ( V, range(0,n), range(j+1,n) , sub( smallV, outerprod( mul(smallV, householder.v), householder.v, householder.beta) ) );	
 		var i,k;	
+		var n_j_1 = n-j-1;
 		for ( i=0; i < n; i++) {
-			var Vi = i*n;
+			var Vi = i*n + j + 1;
 			var Vv = 0;
-			for ( k=j+1;k<n; k++) 
-				Vv += V.val[Vi + k] *  v[k-j-1] ;
+			for ( k=0;k<n_j_1; k++) 
+				Vv += V.val[Vi + k] *  v[k] ;
 			var betaVvk = beta * Vv;
-			for ( k=j+1; k < n ; k++) {
-				V.val[Vi + k] -= betaVvk * v[k-j-1];
+			for ( k=0; k < n_j_1 ; k++) {
+				V.val[Vi + k] -= betaVvk * v[k];
 			}
 		}
 	};
