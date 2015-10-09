@@ -5544,7 +5544,7 @@ function eig( A , computeEigenvectors ) {
 	const n = A.length;
 	var i;
 	
-	const TOL = 1e-10; //10 * EPS;
+	const TOL = 1e-12; //10 * EPS;
 
 	do { 
 		for ( i=0; i<n-1; i++) {

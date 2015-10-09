@@ -29,6 +29,8 @@ Ready-to-use versions of the tools are available online at:
 - **Statistics:** random numbers, sampling from and estimating standard distributions
 - **Optimization:** steepest descent, BFGS, linear programming (thanks to [glpk.js](https://github.com/hgourvest/glpk.js)), quadratic programming
 
+See [this benchmark](http://mlweb.loria.fr/benchmark/) for a comparison of LALOLib with other linear algebra javascript libraries.
+
 ## Machine learning capabilities provided by ML.js
 
 #### Classification 
