@@ -1099,11 +1099,11 @@ KernelRidgeRegression.prototype.predict = function (X) {
 	*/ 
 	var i,j;
 	
-	if ( this.single_x( x ) ) {
+	if ( this.single_x( X ) ) {
 		if ( this.dim_input == 1 ) 
-			var xvector = [x];
+			var xvector = [X];
 		else
-			var xvector = x;
+			var xvector = X;
 		var y = 0;
 		for ( j=0; j < this.alpha.length; j++ )
 			y += this.alpha[j] * this.kernelFunc(this.X.row(j), xvector);		
