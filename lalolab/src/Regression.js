@@ -471,7 +471,7 @@ LeastSquares.prototype.train = function (X, y) {
 /// LeastAbsolute: Least absolute error 
 /////////////////////////////
 function LeastAbsolute ( params) {
-	var that = new Regression ( OLS, params);
+	var that = new Regression ( LeastAbsolute, params);
 	return that;
 }
 LeastAbsolute.prototype.construct = function ( params ) {

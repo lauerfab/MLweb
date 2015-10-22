@@ -333,7 +333,7 @@ Classifier.prototype.single_x = function ( x ) {
 ///////////////////////////////////////////////////
 
 function LDA ( params ) {
-	var that = new Classifier ( Perceptron, params);	
+	var that = new Classifier ( LDA, params);	
 	return that;
 }
 LDA.prototype.construct = function (params) {
@@ -3971,7 +3971,7 @@ NaiveBayes.prototype.predictscore = function( x ) {
 ///////////////////////////////////////////////////
 
 function DecisionTree ( params ) {
-	var that = new Classifier ( NaiveBayes, params);	
+	var that = new Classifier ( DecisionTree, params);	
 	return that;
 }
 DecisionTree.prototype.construct = function (params) {
