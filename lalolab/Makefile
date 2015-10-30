@@ -25,13 +25,13 @@ lalolib.js: src/lalolibbase.js src/linalg.js src/sparse.js src/laloglpk.js src/g
 	cat src/lalolibbase.js src/linalg.js src/sparse.js src/laloglpk.js src/glpk.min.js src/stats.js src/laloplots.js > lalolib.js 
 
 # ML.js includes LALOLib plus Machine learning functions
-ml.js: lalolib.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/Loaders.js
-	cat lalolib.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/Loaders.js > ml.js
+ml.js: lalolib.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/Loaders.js src/MLutils.js
+	cat lalolib.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/Loaders.js src/MLutils.js > ml.js
 	
 # version for LALOLab (different printing functions...)
 # All toolboxes are included in LALOLab by default
-laloliblab.js: src/linalg.js src/sparse.js src/laloglpk.js src/stats.js src/glpk.min.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/GraphicalModel.js src/Loaders.js toolboxes
-	cat src/linalg.js src/sparse.js src/laloglpk.js src/glpk.min.js src/stats.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/GraphicalModel.js src/Loaders.js toolboxes/*.js > laloliblab.js
+laloliblab.js: src/linalg.js src/sparse.js src/laloglpk.js src/stats.js src/glpk.min.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/GraphicalModel.js src/Loaders.js src/MLutils.js toolboxes
+	cat src/linalg.js src/sparse.js src/laloglpk.js src/glpk.min.js src/stats.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/GraphicalModel.js src/Loaders.js src/MLutils.js toolboxes/*.js > laloliblab.js
 
 # Online Help 
 lalohelp.js: src/lalohelpbase.js help/*

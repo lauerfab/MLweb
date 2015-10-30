@@ -3993,7 +3993,11 @@ NaiveBayes.prototype.predict = function ( x ) {
 
 	if (typeof(scores) != "undefined") {
 		
-		if ( type ( x ) == "matrix" ) {
+		if ( this.single_x( x ) ) {
+			// single prediction
+			return this.recoverLabels( argmax( scores ) );
+		}
+		else {		
 			// multiple predictions for multiple test data
 			var i;
 			var y = zeros(x.length );
@@ -4002,15 +4006,10 @@ NaiveBayes.prototype.predict = function ( x ) {
 			}
 
 			return this.recoverLabels( y );
-		}
-		else {
-			// single prediction
-			return this.recoverLabels( argmax( scores ) );
-		}
-		
+		}		
 	}
 	else
-		return "undefined";	
+		return undefined;	
 }
 
 NaiveBayes.prototype.predictscore = function( x ) {
