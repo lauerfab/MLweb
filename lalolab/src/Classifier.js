@@ -4033,58 +4033,7 @@ NaiveBayes.prototype.predictscore = function( x ) {
 		
 		return mat(z);
 	}
-	/*
-	if ( this.dim_input == 1) {	
-		if (tx == "number" ) {
-			var z = log(this.priors);
-			var k;		
-			for ( k=0; k < this.labels.length; k++ ) {
-				z[k] += Math.log( this.pX[k][0].pdf( x ) );
-			}
-		}
-		else {
-			var i;
-			var z = zeros(x.length, this.labels.length);
-			for ( i=0; i< x.length ; i++ ) {
-				var zr = z.row(i);
-				zr.set(log(this.priors));
-				var k;		
-				for ( k=0; k < this.labels.length; k++ ) {
-					zr[k] += Math.log( this.pX[k][0].pdf( x ) );
-				}
-			}
-		}
-	}
-	else if (tx == "vector" ) {
-		// multi-dim single data vector
-		var z = log(this.priors);
-
-		var k;		
-		var j;
-		for ( k=0; k < this.labels.length; k++ ) {
-			for ( j=0; j < this.dim_input ; j++) 
-				z[k] += Math.log( this.pX[k][j].pdf( x[j] ) );
-		}
-
-		return z;
-	}
-	else {
-		// assume x is a matrix
-		var i;
-		var z = zeros(x.length, this.labels.length);
-		for ( i=0; i< x.length ; i++ ) {
-			var zr = z.row(i);
-			zr.set(log(this.priors));
-		
-			var k;		
-			var j;
-			for ( k=0; k < this.labels.length; k++ ) {
-				for ( j=0; j < this.dim_input ; j++) 
-					zr[k] += Math.log( this.pX[k][j].pdf( x.val[i*x.n + j] ) );
-			}	
-		}
-		
-	}	*/
+	
 	return z;	
 }
 
