@@ -139,6 +139,13 @@ Classifier.prototype.trainMulticlass = function (X, y) {
 	// assume y in {0, ..., Nclasses-1} 	
 }
 */
+Classifier.prototype.update = function (X, labels) {
+	// Online training function: should update the classifier
+	//	with additional training data in (X,labels)
+	error("Error in " + this.algorithm + ".update(): Online training is not implemented for this classifier");
+	return undefined;
+}
+
 Classifier.prototype.predict = function (X) {
 	// Prediction function
 	var y = 0; 
@@ -3346,6 +3353,9 @@ KNN.prototype.train = function ( X, labels ) {
 }
 KNN.prototype.update = function ( X, Y ) {
 	// Online training: add X,labels to training set
+	if ( typeof(this.X) == "undefined" )
+		return this.train(X, Y);
+	
 	this.X = mat([this.X, X], true);
 
 	if ( this.single_x( X ) ) 
@@ -3924,6 +3934,9 @@ NaiveBayes.prototype.update = function ( X, labels ) {
 		error("Online update of NaiveBayes classifier is only implemented for Bernoulli distribution yet");
 		return undefined;
 	}
+	if ( typeof(this.priors) == "undefined" )
+		return this.train(X, labels);
+	
 	const dim = this.dim_input; 	
 
 
