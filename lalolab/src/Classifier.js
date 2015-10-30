@@ -3344,7 +3344,36 @@ KNN.prototype.train = function ( X, labels ) {
 		*/
 	return this.info();
 }
+KNN.prototype.update = function ( X, Y ) {
+	// Online training: add X,labels to training set
+	this.X = mat([this.X, X], true);
 
+	if ( this.single_x( X ) ) 
+		var labels = [Y];
+	else 
+		var labels = Y;
+
+	// Make y an Array (easier to push new labels
+	if ( Array.isArray(this.y) ) 
+		var y = this.y; 
+	else
+		var y = arrayCopy(this.y);
+
+	for (var i = 0; i<labels.length; i++) {
+		y.push( Y[i] );
+		
+		// update labels if adding new classes...
+		var numericlbl = this.labels.indexOf( labels[i] );
+		if(numericlbl < 0 ) {
+			numericlbl = this.labels.length;
+			this.labels.push( labels[i] );
+			this.numericlabels.push( numericlbl );				
+		}
+	}
+	this.y = y;
+	
+	return this.info();
+}
 
 KNN.prototype.predictslow = function ( x ) {
    	const N = this.X.length; 
