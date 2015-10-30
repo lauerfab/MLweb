@@ -1162,9 +1162,9 @@ load = run;
 
 function getWorkspace() {
 	var res = new Object();
-	var throwaway = ["MathFunctions" , "mf" , "self" , "console" , "location" , "onerror" , "onoffline" , "ononline" , "navigator" , "onclose" , "performance", "crypto", "indexedDB", "PERSISTENT", "TEMPORARY", "EPS"]; 
+	var throwaway = ["MathFunctions" , "mf" , "self" , "console" , "location" , "onerror" , "onoffline" , "ononline" , "navigator" , "onclose" , "performance", "crypto", "indexedDB", "PERSISTENT", "TEMPORARY", "EPS", "caches"]; 
 	for ( var i in self ) {
-		if ( typeof( self[i] ) != "function") {
+		if ( typeof( self[i] ) != "function" && !(self[i] instanceof CacheStorage)) {
 			if ( MathFunctions.indexOf(i) < 0 && throwaway.indexOf(i) < 0 && i.indexOf("GLP") < 0 && i.indexOf("LPX") < 0 && i.indexOf("LPF_") < 0 && i.indexOf("webkit") < 0 && i.indexOf("LALOLIB_ERROR") < 0 ) {
 				res[i] = self[i] ;
 			}
@@ -1285,7 +1285,7 @@ function object2binary ( x ) {
 
 
 function binary2object ( blob , returnvalue) {
-
+console.log(blob);
 	var correctLength = 64;
 
 	var myblobreader = new FileReaderSync();
@@ -1304,7 +1304,7 @@ function binary2object ( blob , returnvalue) {
 	
 		var varType = removeSpaces(myblobreader.readAsBinaryString(blob.slice(blobpos, blobpos+correctLength)));
 		blobpos += correctLength;
-	
+	console.log(varName, varType);
 		switch ( varType ) {
 			case "string":
 				var s = new Uint32Array(myblobreader.readAsArrayBuffer(blob.slice( blobpos, blobpos + 4 ) ) );
