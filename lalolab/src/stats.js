@@ -60,6 +60,11 @@ function Distribution (distrib, arg1, arg2 ) {
 	this.pdf = distrib.prototype.pdf;
 	if( distrib.prototype.pmf )
 		this.pmf = distrib.prototype.pmf;  
+	
+	if( distrib.prototype.logpdf )
+		this.logpdf = distrib.prototype.logpdf;  
+	else
+		this.logpdf = function ( x ) { return log(this.pdf(x)); };
 		
 //	this.cdf = distrib.prototype.cdf; 
 	
@@ -362,7 +367,7 @@ Gaussian.prototype.pdf = function ( x ) {
 		else {
 			var diff = sub(x, this.mean);
 			return entrywisediv ( exp( entrywisediv(entrywisemul( diff, diff), -2* this.variance) ), this.std * Math.sqrt(2*Math.PI) ) ;
-		}
+		} 
 	}
 	else {  
 		if ( type(x) == "vector") {
@@ -410,7 +415,7 @@ Gaussian.prototype.estimate = function ( X ) {
 	// Estimate dsitribution from the N-by-d matrix X
 	if ( type ( X ) == "matrix" ) {
 		this.mean = mean(X,1).val;
-		this.variance = mul(transpose(X),X);
+		this.variance = variance(X,1).val;
 		this.std = undefined;
 		this.dimension = X.n;
 	}
@@ -587,14 +592,14 @@ Bernoulli.prototype.pdf = Bernoulli.prototype.pmf = function ( x ) {
 			for(var k = 0; k < mn ; k++){
 				P.val[k] = pdfscalar(x.val[k], this.mean);
 			}
-			return p;
+			return P;
 		}
 	}
 	else {
 		switch( tx ) {
 		case "vector":
 			var p = pdfscalar(x[0], this.mean[0]);
-			for (var k =0; k < this.dimension; k++)
+			for (var k = 1; k < this.dimension; k++)
 				p *= pdfscalar(x[k], this.mean[k]);
 			break;
 			
@@ -616,11 +621,112 @@ Bernoulli.prototype.pdf = Bernoulli.prototype.pmf = function ( x ) {
 			var p = zeros(x.m); 
 			for (var i=0; i < x.m; i++) {
 				p[i] = pdfscalar(x.val[i*x.n], this.mean[0]);
-				for (var k =0; k < x.n; k++)
+				for (var k = 1; k < x.n; k++)
 					p[i] *= pdfscalar(x.val[i*x.n + k], this.mean[k]);			
 			}
 			break;
 		case "spmatrix":
+			var p = ones(x.m);
+			for (var i=0; i < x.m; i++) {
+				var xr = x.row(i);	// could be faster without this...
+				for (var j=0; j < xr.ind[0] ; j++)
+					p[i] *= (1-this.mean[j]);
+				for (var k =0; k < xr.val.length - 1; k++) {
+					p[i] *= this.mean[xr.ind[k]];
+					for (var j=xr.ind[k]+1; j < xr.ind[k+1] ; j++)
+						p[i] *= (1-this.mean[j]);
+				}
+				p[i] *= this.mean[xr.ind[k]];
+				for (var j=xr.ind[k]+1; j < this.dimension ; j++)
+					p[i] *= (1-this.mean[j]);	
+			}				
+			break;
+		default:
+			var p = undefined;
+			break;			
+		}
+		return p;
+	}
+	
+}
+
+Bernoulli.prototype.logpdf = Bernoulli.prototype.logpmf = function ( x ) {
+	// return value of logPDF at x
+	const tx = type(x);
+	
+	var logpdfscalar = function ( s, mu ) {
+		if ( s == 1 ) 
+			return Math.log(mu);
+		else if ( s == 0)
+			return Math.log(1-mu);
+		else
+			return -Infinity;
+	};
+	
+	if ( this.dimension == 1 ) {
+		if ( tx == "number" ) {
+			return logpdfscalar(x, this.mean);
+		}
+		else if ( tx == "vector") {
+			var p = zeros(x.length);
+			for(var i = 0; i < x.length ; i++){
+				p[i] = logpdfscalar(x[i], this.mean);
+			}
+			return p;
+		}
+		else if ( tx == "matrix") {
+			var P = zeros(x.m, x.n);
+			var mn = x.m*x.n;
+			for(var k = 0; k < mn ; k++){
+				P.val[k] = logpdfscalar(x.val[k], this.mean);
+			}
+			return P;
+		}
+	}
+	else {
+		switch( tx ) {
+		case "vector":
+			var p = 0;
+			for (var k = 0; k < this.dimension; k++)
+				p += logpdfscalar(x[k], this.mean[k]);
+			break;
+			
+		case "spvector":
+			var p = 0;
+			for (var j=0; j < x.ind[0] ; j++)
+				p += Math.log(1-this.mean[j]);
+			for (var k =0; k < x.val.length - 1; k++) {
+				p += Math.log(this.mean[x.ind[k]]);
+				for (var j=x.ind[k]+1; j < x.ind[k+1] ; j++)
+					p += Math.log(1-this.mean[j]);
+			}
+			p += Math.log(this.mean[x.ind[k]]);
+			for (var j=x.ind[k]+1; j < this.dimension ; j++)
+				p += Math.log(1-this.mean[j]);			
+			break;
+			
+		case "matrix":
+			var p = zeros(x.m); 
+			for (var i=0; i < x.m; i++) {
+				for (var k = 0; k < x.n; k++)
+					p[i] += logpdfscalar(x.val[i*x.n + k], this.mean[k]);			
+			}
+			break;
+		case "spmatrix":
+			var p = zeros(x.m); 
+			for (var i=0; i < x.m; i++) {
+				var xr = x.row(i);	// could be faster without this...
+				for (var j=0; j < xr.ind[0] ; j++)
+					p[i] += Math.log(1-this.mean[j]);
+				for (var k =0; k < xr.val.length - 1; k++) {
+					p[i] += Math.log(this.mean[xr.ind[k]]);
+					for (var j=xr.ind[k]+1; j < xr.ind[k+1] ; j++)
+						p[i] += Math.log(1-this.mean[j]);
+				}
+				p[i] += Math.log(this.mean[xr.ind[k]]);
+				for (var j=xr.ind[k]+1; j < this.dimension ; j++)
+					p[i] += Math.log(1-this.mean[j]);						
+			}
 			break;
 		default:
 			var p = undefined;
@@ -660,7 +766,7 @@ Bernoulli.prototype.estimate = function ( X ) {
 		this.std = Math.sqrt(this.variance);
 		break;
 	default:
-		error("Error in Bernoulli.estimate( X ): is must be a (sp)matrix or (sp)vector.");
+		error("Error in Bernoulli.estimate( X ): X must be a (sp)matrix or (sp)vector.");
 		break;
 	}
 	return this;

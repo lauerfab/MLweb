@@ -2938,6 +2938,9 @@ function mat( elems, rowwise ) {
 				n = 1;
 				break;
 
+			case "spvector":
+				return spmat(elems);
+
 			default:
 				// Array containing not only numbers... 
 				// probably calling mat( Array2D ) => return Array2D
@@ -3815,7 +3818,7 @@ function std(A, alongdimension)  {
 }
 
 /**
- * Covariance matrix C = X'*X
+ * Covariance matrix C = X'*X ./ X.m
  * @param {Matrix|Float64Array|spVector}
  * @return {Matrix|number}
  */

@@ -66,6 +66,8 @@ function Classifier (algorithm, params ) {
 		this.trainBinary = algorithm.prototype.trainBinary; 
 	if ( algorithm.prototype.trainMulticlass )
 		this.trainMulticlass = algorithm.prototype.trainMulticlass; 
+	if ( algorithm.prototype.update )
+		this.update = algorithm.prototype.update; //online training
 		
 	// Prediction functions
 	this.predict = algorithm.prototype.predict;
@@ -3343,6 +3345,7 @@ KNN.prototype.train = function ( X, labels ) {
 	return this.info();
 }
 
+
 KNN.prototype.predictslow = function ( x ) {
    	const N = this.X.length; 
    	if (K >  N) {
@@ -3838,6 +3841,7 @@ NaiveBayes.prototype.construct = function (params) {
 	
 	// Default parameters:
 	this.distribution = Gaussian;
+	this.epsilon = 1;
 	
 	// Set parameters:
 	var i;
@@ -3862,6 +3866,7 @@ NaiveBayes.prototype.train = function ( X, labels ) {
 	
 	const dim = X.n; 
 	this.dim_input = dim;
+	this.N = X.m;
 	
 	var k;
 	this.priors = zeros(this.labels.length);
@@ -3870,21 +3875,80 @@ NaiveBayes.prototype.train = function ( X, labels ) {
 		var idx = find ( isEqual ( y, this.numericlabels[k] ) );
 
 		this.priors[k] = idx.length / y.length;
-		
-		this.pX[k] = new Array(dim) ;
-		for (var j = 0; j < dim; j++) {
-			this.pX[k][j] = new Distribution ( this.distribution );
-			this.pX[k][j].estimate( get(X, idx, j), getSubVector(y, idx ) );
+				
+		this.pX[k] = new Distribution ( this.distribution );		
+		this.pX[k].estimate( get(X, idx, []) );
+
+		if ( this.distribution.name == "Bernoulli" ) {
+			// Add smoothing to avoid issues with words never (or always) occuring in training set
+			this.pX[k].mean = entrywisediv(add(this.epsilon, mul(idx.length , this.pX[k].mean)), idx.length + 2*this.epsilon);
+			this.pX[k].variance = entrywisemul(this.pX[k].mean, sub(1, this.pX[k].mean)) ;
+			this.pX[k].std = sqrt(this.pX[k].variance);
 		}
 	}
 	
+	return this;
+}
+NaiveBayes.prototype.update = function ( X, labels ) {
+	// Online training function
+	if ( this.distribution.name != "Bernoulli" ) {
+		error("Online update of NaiveBayes classifier is only implemented for Bernoulli distribution yet");
+		return undefined;
+	}
+	const dim = this.dim_input; 	
+
+
+	var oneupdate = function ( x, y ) {
+		for ( var k=0; k < this.labels.length ; k++) {
+			if ( k == y ) {
+				var Nk = this.N * this.priors[k]; 
+				
+				this.priors[y] = (Nk + 1) / ( this.N + 1 );
+				
+				if ( tX == "vector")  {
+					for ( var j=0;j<dim; j++)
+						this.pX[k].mean[j] = (this.pX[k].mean[j] * (Nk + 2*this.epsilon) + X[j] ) / (Nk + 1 + 2*this.epsilon);
+				}
+				else if ( tx == "spvector" ) {
+					var jj = 0;
+					for ( var j=0;j<X.ind[jj]; j++)
+						this.pX[k].mean[j] = (this.pX[k].mean[j] * (Nk + 2*this.epsilon) ) / (Nk + 1 + 2*this.epsilon);
+					this.pX[k].mean[X.ind[jj]] = (this.pX[k].mean[X.ind[jj]] * (Nk + 2*this.epsilon) + X.val[jj] ) / (Nk + 1 + 2*this.epsilon);
+					jj++;
+					while ( jj < X.val.length ) {
+						for ( var j=X.ind[jj-1];j<X.ind[jj]; j++)
+							this.pX[k].mean[j] = (this.pX[k].mean[j] * (Nk + 2*this.epsilon) ) / (Nk + 1 + 2*this.epsilon);
+						this.pX[k].mean[X.ind[jj]] = (this.pX[k].mean[X.ind[jj]] * (Nk + 2*this.epsilon) + X.val[jj] ) / (Nk + 1 + 2*this.epsilon);
+
+						jj++;
+					}
+				}
+			}
+			else {
+				this.priors[k] = (this.priors[k] * this.N ) / ( this.N + 1 ); 
+			}
+		}
+		this.N++;	
+	};
+
+
+
+	if ( this.single_x(X) ) {
+		oneupdate( X, this.labels.indexOf( labels ) );				
+	}
+	else {
+		var Y = this.checkLabels( labels , true) ;
+		for ( var i=0; i < Y.length; i++)
+			oneupdate(X.row(i), Y[i]);
+			
+	}
 	return this;
 }
 
 NaiveBayes.prototype.predict = function ( x ) {
 
 	var scores = this.predictscore( x );
-	console.log(scores);
+
 	if (typeof(scores) != "undefined") {
 		
 		if ( type ( x ) == "matrix" ) {
@@ -3911,6 +3975,23 @@ NaiveBayes.prototype.predictscore = function( x ) {
 
 	const tx = type(x);
 	
+	if ( this.single_x(x) ) {
+		var z = log(this.priors);
+		for ( var k=0; k < this.labels.length; k++ ) {
+			z[k] += this.pX[k].logpdf( x ) ;
+		}
+	
+		return z;
+	}
+	else {
+		var z = new Array(this.labels.length);
+		for ( var k=0; k < this.labels.length; k++ ) {
+			z[k] = addScalarVector(Math.log(this.priors[k]), this.pX[k].logpdf( x ));
+		}
+		
+		return mat(z);
+	}
+	/*
 	if ( this.dim_input == 1) {	
 		if (tx == "number" ) {
 			var z = log(this.priors);
@@ -3961,7 +4042,7 @@ NaiveBayes.prototype.predictscore = function( x ) {
 			}	
 		}
 		
-	}	
+	}	*/
 	return z;	
 }
 

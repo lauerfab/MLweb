@@ -106,9 +106,10 @@ function spMatrix(m,n, values, cols, rows) {
 		else
 			var nnz = values;
 			
+		/** @type{boolean} */ this.rowmajor = true;
 		/** @type{Float64Array} */ this.val = new Float64Array(nnz);  // nnz values
-		/** @type{Uint32Array} */ this.cols = new Uint32Array(n + 1); // cols[j] = starting index of col j in val and rows
-		/** @type{Uint32Array} */ this.rows = new Uint32Array(nnz);   // rows[k] = row of val[k]
+		/** @type{Uint32Array} */ this.cols = new Uint32Array(nnz); // cols[j] = starting index of col j in val and rows
+		/** @type{Uint32Array} */ this.rows = new Uint32Array(m+1);   // rows[k] = row of val[k]
 	}
 	else {
 		var nnz = values.length;
@@ -443,6 +444,99 @@ function transposespMatrix (A) {
 	return sparseMatrix(At);
 	*/
 }
+
+
+
+/** Concatenate sparse matrices/vectors
+ * @param {Array} 
+ * @param {boolean}
+ * @return {spMatrix}
+ */
+function spmat( elems, rowwise ) {
+	var k;
+	var elemtypes = new Array(elems.length);
+	for ( k=0; k < elems.length; k++) {
+		elemtypes[k] = type(elems[k]);
+	}
+		
+	if ( typeof(rowwise) == "undefined")
+		var rowwise = true;
+		
+	if ( elems.length == 0 ) {
+		return []; 
+	}
+
+	var m = 0;
+	var n = 0;
+	var nnz = 0;
+	var i;
+	var j;
+	if ( rowwise ) {
+		var res = new Array( ) ;
+		
+		for ( k= 0; k<elems.length; k++) {
+			switch( elemtypes[k] ) {
+
+			case "vector": // vector (auto transposed)
+				var v = sparseVector(elems[k]);
+				res.push ( v ) ;
+				m += 1;
+				n = elems[k].length;
+				nnz += v.val.length;
+				break;			
+			
+			case "spvector":
+				res.push(elems[k]);
+				n = elems[k].length;
+				m += 1;
+				nnz += elems[k].val.length;
+				break;
+				
+			case "spmatrix":
+				for ( var r=0; r < elems[k].m; r++)
+					res.push(elems[k].row(r));
+				res.push(elems[k]);
+				n = elems[k].length;
+				m += 1;
+				nnz += elems[k].val.length;
+				
+				break;
+				
+			default:
+				return undefined;
+				break;
+			}
+		}
+		
+		var M = new spMatrix( m , n , nnz ) ;
+		var p = 0;
+		M.rows[0] = 0;		
+		for (k=0; k < res.length ; k++) {
+			if ( res[k].val.length > 1 ) {
+				M.val.set( new Float64Array(res[k].val), p);
+				M.cols.set( new Uint32Array(res[k].ind), p);
+				M.rows[k+1] = M.rows[k] + res[k].val.length;
+				p += res[k].val.length;
+			}
+			else if (res[k].val.length == 1) {
+				M.val[p] = res[k].val[0];
+				M.cols[p] = res[k].ind[0];
+				M.rows[k+1] = M.rows[k] + 1;
+				p += 1;			
+			}
+				
+		}
+		return M;
+	}
+	else {
+		// not yet...
+		
+		error("spmat(..., false) for columnwise concatenation of sparse vectors not yet implemented");
+		
+		return res;
+	}
+}
+
 
 
 /**
