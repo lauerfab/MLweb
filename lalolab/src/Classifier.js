@@ -3879,7 +3879,7 @@ function NaiveBayes ( params ) {
 NaiveBayes.prototype.construct = function (params) {
 	
 	// Default parameters:
-	this.distribution = Gaussian;
+	this.distribution = "Gaussian";
 	this.epsilon = 1;
 	
 	// Set parameters:
@@ -3888,6 +3888,10 @@ NaiveBayes.prototype.construct = function (params) {
 		for (i in params)
 			this[i] = params[i]; 
 	}		
+
+	// Make sure distribution is a string (easier to save/load from files)
+	if ( typeof(this.distribution) == "function" ) 
+		this.distribution = this.distribution.name;
 
 	// Parameter grid for automatic tuning:
 	this.parameterGrid = {   };
@@ -3918,7 +3922,7 @@ NaiveBayes.prototype.train = function ( X, labels ) {
 		this.pX[k] = new Distribution ( this.distribution );		
 		this.pX[k].estimate( get(X, idx, []) );
 
-		if ( this.distribution.name == "Bernoulli" ) {
+		if ( this.distribution == "Bernoulli" ) {
 			// Add smoothing to avoid issues with words never (or always) occuring in training set
 			this.pX[k].mean = entrywisediv(add(this.epsilon, mul(idx.length , this.pX[k].mean)), idx.length + 2*this.epsilon);
 			this.pX[k].variance = entrywisemul(this.pX[k].mean, sub(1, this.pX[k].mean)) ;
@@ -3930,7 +3934,7 @@ NaiveBayes.prototype.train = function ( X, labels ) {
 }
 NaiveBayes.prototype.update = function ( X, labels ) {
 	// Online training function
-	if ( this.distribution.name != "Bernoulli" ) {
+	if ( (typeof(this.distribution) == "string" && this.distribution != "Bernoulli") || (typeof(this.distribution) == "function" && this.distribution.name != "Bernoulli") ) {
 		error("Online update of NaiveBayes classifier is only implemented for Bernoulli distribution yet");
 		return undefined;
 	}
@@ -3938,50 +3942,52 @@ NaiveBayes.prototype.update = function ( X, labels ) {
 		return this.train(X, labels);
 	
 	const dim = this.dim_input; 	
-
-
-	var oneupdate = function ( x, y ) {
-		for ( var k=0; k < this.labels.length ; k++) {
+	var tx;
+	
+	var oneupdate = function ( x, y, that ) {
+		for ( var k=0; k < that.labels.length ; k++) {
 			if ( k == y ) {
-				var Nk = this.N * this.priors[k]; 
+				var Nk = that.N * that.priors[k]; 
 				
-				this.priors[y] = (Nk + 1) / ( this.N + 1 );
+				that.priors[y] = (Nk + 1) / ( that.N + 1 );
 				
-				if ( tX == "vector")  {
+				if ( tx == "vector")  {
 					for ( var j=0;j<dim; j++)
-						this.pX[k].mean[j] = (this.pX[k].mean[j] * (Nk + 2*this.epsilon) + X[j] ) / (Nk + 1 + 2*this.epsilon);
+						that.pX[k].mean[j] = (that.pX[k].mean[j] * (Nk + 2*that.epsilon) + x[j] ) / (Nk + 1 + 2*that.epsilon);
 				}
 				else if ( tx == "spvector" ) {
 					var jj = 0;
-					for ( var j=0;j<X.ind[jj]; j++)
-						this.pX[k].mean[j] = (this.pX[k].mean[j] * (Nk + 2*this.epsilon) ) / (Nk + 1 + 2*this.epsilon);
-					this.pX[k].mean[X.ind[jj]] = (this.pX[k].mean[X.ind[jj]] * (Nk + 2*this.epsilon) + X.val[jj] ) / (Nk + 1 + 2*this.epsilon);
+					for ( var j=0;j < x.ind[jj]; j++)
+						that.pX[k].mean[j] = (that.pX[k].mean[j] * (Nk + 2*that.epsilon) ) / (Nk + 1 + 2*that.epsilon);
+					that.pX[k].mean[x.ind[jj]] = (that.pX[k].mean[x.ind[jj]] * (Nk + 2*that.epsilon) + x.val[jj] ) / (Nk + 1 + 2*that.epsilon);
 					jj++;
-					while ( jj < X.val.length ) {
-						for ( var j=X.ind[jj-1];j<X.ind[jj]; j++)
-							this.pX[k].mean[j] = (this.pX[k].mean[j] * (Nk + 2*this.epsilon) ) / (Nk + 1 + 2*this.epsilon);
-						this.pX[k].mean[X.ind[jj]] = (this.pX[k].mean[X.ind[jj]] * (Nk + 2*this.epsilon) + X.val[jj] ) / (Nk + 1 + 2*this.epsilon);
+					while ( jj < x.val.length ) {
+						for ( var j=x.ind[jj-1];j<x.ind[jj]; j++)
+							that.pX[k].mean[j] = (that.pX[k].mean[j] * (Nk + 2*that.epsilon) ) / (Nk + 1 + 2*that.epsilon);
+						that.pX[k].mean[x.ind[jj]] = (that.pX[k].mean[x.ind[jj]] * (Nk + 2*that.epsilon) + x.val[jj] ) / (Nk + 1 + 2*that.epsilon);
 
 						jj++;
 					}
 				}
 			}
 			else {
-				this.priors[k] = (this.priors[k] * this.N ) / ( this.N + 1 ); 
+				that.priors[k] = (that.priors[k] * that.N ) / ( that.N + 1 ); 
 			}
 		}
-		this.N++;	
+		that.N++;	
 	};
 
 
 
 	if ( this.single_x(X) ) {
-		oneupdate( X, this.labels.indexOf( labels ) );				
+		tx = type(X);
+		oneupdate( X, this.labels.indexOf( labels ), this );		
 	}
 	else {
 		var Y = this.checkLabels( labels , true) ;
+		tx = type(X.row(0));
 		for ( var i=0; i < Y.length; i++)
-			oneupdate(X.row(i), Y[i]);
+			oneupdate(X.row(i), Y[i], this);
 			
 	}
 	return this;
