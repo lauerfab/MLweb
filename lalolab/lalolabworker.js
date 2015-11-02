@@ -1159,7 +1159,7 @@ function run( script ) {
 	importScripts(script); 	
 }
 load = run;
-
+/*
 function getWorkspace() {
 	var res = new Object();
 	var throwaway = ["MathFunctions" , "mf" , "self" , "console" , "location" , "onerror" , "onoffline" , "ononline" , "navigator" , "onclose" , "performance", "crypto", "indexedDB", "PERSISTENT", "TEMPORARY", "EPS", "caches"]; 
@@ -1255,8 +1255,7 @@ function object2binary ( x ) {
 				data.push( new Uint32Array([ x[p].length, x[p].n]) );
 				data.push( vec );
 				break;
-			case "Array":
-				
+			case "Array":				
 				var objdata = object2binary( x[p] );
 				data.push ( makeCorrectLength(p) + makeCorrectLength("Array") );
 				data.push( new Uint32Array([objdata.size]) );
@@ -1280,12 +1279,12 @@ function object2binary ( x ) {
 		}
 	}
 
-	return new Blob(data, {type: "octet/strem"}); // "application/octet-binary"}); 
+	return new Blob(data, {type: "octet/stream"}); // "application/octet-binary"}); 
 }
 
 
 function binary2object ( blob , returnvalue) {
-console.log(blob);
+
 	var correctLength = 64;
 
 	var myblobreader = new FileReaderSync();
@@ -1354,7 +1353,7 @@ console.log(blob);
 				blobpos += 8*m*n;			
 				
 				break;
-				case "Array":
+			case "Array":
 			// arrays of anything (but 1D...)
 				var s = new Uint32Array(blob.slice( blobpos, blobpos + 4 ) );
 				var len = s[0];
@@ -1407,4 +1406,141 @@ function makeCorrectLength( str ) {
 		
 	return str;
 }
+*/
+function getObjectWithoutFunc( obj ) {
+	// Functions and Objects with function members cannot be sent 
+	// from one worker to another...
+	
+	if ( typeof(obj) != "object" ) 
+		return obj;
+	else {
+		var res = {};
 
+		for (var p in obj ) {
+			switch( type(obj[p]) ) {
+			case "vector": 
+				res[p] = {type: "vector", data: [].slice.call(obj[p])};
+				break;
+			case "matrix":
+				res[p] = obj[p];
+				res[p].val = [].slice.call(obj[p].val);
+				break;
+			case "spvector":
+			case "spmatrix":
+			case "undefined":
+				res[p] = obj[p];
+				break;
+			case "function":
+				break;
+			case "Array":
+				res[p] = getObjectWithoutFunc( obj[p] );
+				res[p].type = "Array";
+				res[p].length = obj[p].length;
+				break;
+			default:
+				res[p] = getObjectWithoutFunc( obj[p] );
+				break;			
+			}						
+		}
+		return res;
+	}
+}
+function renewObject( obj ) {
+	// Recreate full object with member functions 
+	// from an object created by getObjectWithoutFunc()
+
+	var to = type(obj);
+	switch( to ) {
+		case "number":
+		case "boolean":
+		case "string":
+		case "undefined":
+			return obj;
+			break;
+		case "vector":
+			return new Float64Array(obj.data);
+			break;
+		case "matrix":
+			return new Matrix(obj.m, obj.n, obj.val);
+			break;
+
+		case "object":
+			// Object without type property and thus without Class		
+			var newobj = {}; 
+			for ( var p in obj ) 
+				newobj[p] = renewObject(obj[p]);
+			return newobj;
+			break;
+		case "Array":
+			var newobj = new Array(obj.length);
+			for ( var p in obj ) 
+				newobj[p] = renewObject(obj[p]);
+			return newobj;
+		default:
+			// Structured Object like Classifier etc... 
+			// type = Class:subclass
+			var typearray = obj.type.split(":");
+			var Class = eval(typearray[0]);
+			if ( typearray.length == 1 ) 
+				var newobj = new Class(); 
+			else 
+				var newobj = new Class(typearray[1]);
+			for ( var p in obj ) 
+				newobj[p] = renewObject(obj[p]);
+			return newobj;
+			break;
+	}
+}
+function getWorkspace() {
+	var res = new Object();
+	var throwaway = ["MathFunctions" , "mf" , "self" , "console" , "location" , "onerror" , "onoffline" , "ononline" , "navigator" , "onclose" , "performance", "crypto", "indexedDB", "PERSISTENT", "TEMPORARY", "EPS", "caches"]; 
+	for ( var i in self ) {
+		if ( typeof( self[i] ) != "function" && !(self[i] instanceof CacheStorage)) {
+			if ( MathFunctions.indexOf(i) < 0 && throwaway.indexOf(i) < 0 && i.indexOf("GLP") < 0 && i.indexOf("LPX") < 0 && i.indexOf("LPF_") < 0 && i.indexOf("webkit") < 0 && i.indexOf("LALOLIB_ERROR") < 0 ) {
+				res[i] = self[i] ;
+			}
+		}
+	}
+
+	return getObjectWithoutFunc(res);
+}
+
+function save( varList ) {
+	if ( typeof(JSZip) == "undefined")
+			importScripts("jszip.min.js");
+			
+	var zip = new JSZip();
+	
+	if (arguments.length == 0) {
+		var str = JSON.stringify(getWorkspace());
+		
+		zip.file("workspace.lab", str );
+		var zipblob = zip.generate({type:"blob", compression: "DEFLATE"});
+		
+		postMessage( {cmd: "SAVE", output: zipblob } );
+			
+		return "Workspace saved.";
+	}
+	else {
+		var list = {}; 
+		for ( var i=0; i< arguments.length; i++) 
+			list[arguments[i]] = eval(arguments[i]);
+		
+		var str = JSON.stringify(getObjectWithoutFunc( list ));
+		zip.file("workspace.lab", str );
+		var zipblob = zip.generate({type:"blob", compression: "DEFLATE"});
+		
+		postMessage( {cmd: "SAVE", output: zipblob } );
+		return arguments.length + " variables saved.";	
+	}
+}
+function setWorkspace( WorkspaceBlob ) {
+	if ( typeof(JSZip) == "undefined")
+		importScripts("jszip.min.js");
+	var zip = new JSZip(WorkspaceBlob);
+	var obj = JSON.parse(zip.file("workspace.lab").asText());
+	for ( var p in obj ) {
+		self[p] = renewObject(obj[p]);
+	}
+	return "Workspace loaded.";
+}
