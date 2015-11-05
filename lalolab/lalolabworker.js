@@ -1426,7 +1426,16 @@ function getObjectWithoutFunc( obj ) {
 				res[p].val = [].slice.call(obj[p].val);
 				break;
 			case "spvector":
+				res[p] = obj[p];
+				res[p].val = [].slice.call(obj[p].val);
+				res[p].ind = [].slice.call(obj[p].ind);
+				break;
 			case "spmatrix":
+				res[p] = obj[p];
+				res[p].val = [].slice.call(obj[p].val);
+				res[p].cols = [].slice.call(obj[p].cols);
+				res[p].rows = [].slice.call(obj[p].rows);
+				break;
 			case "undefined":
 				res[p] = obj[p];
 				break;
@@ -1463,7 +1472,12 @@ function renewObject( obj ) {
 		case "matrix":
 			return new Matrix(obj.m, obj.n, obj.val);
 			break;
-
+		case "spvector":
+			return new spVector(obj.length,obj.val,obj.ind);
+			break;
+		case "spmatrix":
+			return new spMatrix(obj.m, obj.n, obj.val, obj.cols, obj.rows);
+			break;
 		case "object":
 			// Object without type property and thus without Class		
 			var newobj = {}; 
