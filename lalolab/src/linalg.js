@@ -6359,7 +6359,7 @@ function rank( A ) {
 
 function nullspace( A ) {
 	// Orthonormal basis for the null space of A
-	const s = svd( A, "thinV" ) ; 
+	const s = svd( A, "V" ) ; 
 	const n = A.n;
 
 	var rank = 0;
