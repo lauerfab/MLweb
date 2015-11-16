@@ -605,14 +605,17 @@ Perceptron.prototype.trainBinary = function ( Xorig, y ) {
 		b_prev = b;
 		
 		for(i = 0;i<N ;i++) {
-			var Xi = getrowref(X,i);
+			var Xi = X.row(i);
 			var yp = this.predictscoreBinary(Xi, w, b);
 			
 			if(y[i] != Math.sign(yp) ) {
 				errors++;
+				saxpy(this.learningRate * y[i], Xi, w);
+				/*
 				for(j=0;j<dim;j++) {
 					w[j] +=  this.learningRate * y[i] * Xi[j];
 				}
+				*/
 				b -= this.learningRate * y[i];									
 			}			
 		}
@@ -620,8 +623,9 @@ Perceptron.prototype.trainBinary = function ( Xorig, y ) {
 		// Stopping criterion
 		norm_diff = 0;
 		for(j=0;j<dim;j++)
-			norm_diff += (w[j] - w_prev[j]) * (w[j] - w_prev[j]) + (b - b_prev) * (b-b_prev);
-			
+			norm_diff += (w[j] - w_prev[j]) * (w[j] - w_prev[j]);
+		norm_diff += (b - b_prev) * (b-b_prev);
+		
 		epoch++;
 	}
 	

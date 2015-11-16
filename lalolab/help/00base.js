@@ -24,8 +24,8 @@ HELPcontent["< (isLower)"] = ["Basics", "Inequality test","C = (A < B)\n","Retur
 HELPcontent[">= (isLowerOrEqual)"] = ["Basics", "Inequality test","C = (A <= B)\n","Return a vector/matrix C of same size as A with entries Cij=1 if Aij<=Bij and 0 otherwise. B must have same size as A or be a number."];
 
 // Matrix generation 
-HELPcontent["size"] = ["Basics", "Size of a matrix/vector","s = size(A)\nm = size(A, 1)\nn = size(A, 2)","Return the size of a matrix/vector as a vector s = [m, n] or simply the number of rows m or of columns n."];
-HELPcontent["type"] = ["Basics", "Type of an object","tx = type(x)","Return a string indicating the type of an object: \"number\", \"vector\", \"matrix\", \"string\", \"object\" or \"function\"."];
+HELPcontent["size"] = ["Basics", "Size of a matrix/vector","s = size(A)\nm = size(A, 1)\nn = size(A, 2)","Return the size of a matrix/vector as a vector s = [m, n] or simply the number of rows m or of columns n.<br><br>Note that for a vector <i>a</i>, <i>a.length</i> yields its dimension, while the dimensions of a matrix <i>A</i> can be directly accessed as <i>A.m</i> and <i>A.n</i>."];
+HELPcontent["type"] = ["Basics", "Type of an object","tx = type(x)","Return a string indicating the type of an object: \"number\", \"vector\", \"matrix\", \"spvector\", \"spmatrix\", \"string\", \"object\" or \"function\".<br><br>Complex types corresponding for instance to machine learning models or statistical distributions can also take the form of a general class followed by a subclass, e.g., \"Classifier:SVM\" or \"Distribution:Gaussian\"."];
 HELPcontent["zeros"] = ["Basics", "Zero matrix/vector","v = zeros(n)\nA = zeros(m,n)","Generate an n-dimensional vector v or m-by-n matrix A filled with zeros."];
 HELPcontent["ones"] = ["Basics", "Matrix/vector of 1","v = ones(n)\nA = ones(m,n)","Generate an n-dimensional vector v or an m-by-n matrix A filled with ones."];
 HELPcontent["eye"] = ["Basics", "Identity matrix","I = eye(n)\n","Return the n-by-n identity matrix."];
