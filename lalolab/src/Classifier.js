@@ -2015,7 +2015,7 @@ SVM.prototype.predictscoreBinary = function( x , alpha, SVindexes, SV, SVlabels,
 
 	var i;
 	var j;
-	var output;
+	var output;	
 
 	if ( this.single_x(x) ) {
 	
