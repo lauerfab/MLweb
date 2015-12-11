@@ -2886,12 +2886,12 @@ function issymmetric ( A ) {
  */
 function mat( elems, rowwise ) {
 	var k;
-	var onlyVectorsAndNumbers = true;
+	var concatWithNumbers = false;
 	var elemtypes = new Array(elems.length);
 	for ( k=0; k < elems.length; k++) {
 		elemtypes[k] = type(elems[k]);
-		if ( elemtypes[k] != "number" && elemtypes[k] != "vector" && elemtypes[k] != "spvector")
-			onlyVectorsAndNumbers = false;
+		if ( elemtypes[k] == "number" ) 
+			concatWithNumbers = true;		
 	}
 	
 	
@@ -2931,7 +2931,7 @@ function mat( elems, rowwise ) {
 				break;
 			
 			case "vector": 				
-				if ( onlyVectorsAndNumbers ) {
+				if ( concatWithNumbers ) {
 					// return a column by concatenating vectors and numbers
 					for ( var l=0; l < elems[k].length; l++)
 						res.push(elems[k][l]) ;

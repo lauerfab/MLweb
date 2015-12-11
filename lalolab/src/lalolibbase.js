@@ -1420,7 +1420,23 @@ function getObjectWithoutFunc( obj ) {
 		for (var p in obj ) {
 			switch( type(obj[p]) ) {
 			case "vector": 
+				res[p] = {type: "vector", data: [].slice.call(obj[p])};
+				break;
 			case "matrix":
+				res[p] = obj[p];
+				res[p].val = [].slice.call(obj[p].val);
+				break;
+			case "spvector":
+				res[p] = obj[p];
+				res[p].val = [].slice.call(obj[p].val);
+				res[p].ind = [].slice.call(obj[p].ind);
+				break;
+			case "spmatrix":
+				res[p] = obj[p];
+				res[p].val = [].slice.call(obj[p].val);
+				res[p].cols = [].slice.call(obj[p].cols);
+				res[p].rows = [].slice.call(obj[p].rows);
+				break;
 			case "undefined":
 				res[p] = obj[p];
 				break;
@@ -1434,7 +1450,7 @@ function getObjectWithoutFunc( obj ) {
 			default:
 				res[p] = getObjectWithoutFunc( obj[p] );
 				break;			
-			}						
+			}	
 		}
 		return res;
 	}
@@ -1448,14 +1464,21 @@ function renewObject( obj ) {
 		case "number":
 		case "boolean":
 		case "string":
-		case "vector":
 		case "undefined":
 			return obj;
 			break;
-		case "matrix":
-			return new Matrix(obj.m, obj.n, obj.val, true);
+		case "vector":
+			return new Float64Array(obj.data);
 			break;
-
+		case "matrix":
+			return new Matrix(obj.m, obj.n, obj.val);
+			break;
+		case "spvector":
+			return new spVector(obj.length,obj.val,obj.ind);
+			break;
+		case "spmatrix":
+			return new spMatrix(obj.m, obj.n, obj.val, obj.cols, obj.rows);
+			break;
 		case "object":
 			// Object without type property and thus without Class		
 			var newobj = {}; 

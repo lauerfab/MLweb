@@ -1501,6 +1501,17 @@ function renewObject( obj ) {
 				var newobj = new Class(typearray[1]);
 			for ( var p in obj ) 
 				newobj[p] = renewObject(obj[p]);
+			
+				
+			// deal with particular cases: 
+			// Rebuild kernelFunc 
+			if (typearray[1] == "SVM" || typearray[1] == "SVR" ) {				
+				newobj["kernelFunc"] = kernelFunction(newobj["kernel"], newobj["kernelpar"], type(newobj["SV"]) == "spmatrix"?"spvector":"vector");
+			}
+			if (typearray[1] == "KernelRidgeRegression" ) {
+				newobj["kernelFunc"] = kernelFunction(newobj["kernel"], newobj["kernelpar"], type(newobj["X"]) == "spmatrix"?"spvector":"vector");
+			}
+						
 			return newobj;
 			break;
 	}
