@@ -1205,6 +1205,17 @@ function addspMatrices (A, B) {
 	return sparseMatrixRowMajor(C);
 }
 
+/** sparse SAXPY : y = y + ax with x sparse and y dense
+ * @param {number}
+ * @param {spVector}
+ * @param {Float64Array}
+ */
+function spsaxpy ( a, x, y) {
+	const nnz = x.val.length;	
+	for (var k=0;k < nnz; k++) 
+		y[x.ind[k]] += a * x.val[k];			
+}
+
 /**
  * @param{number}
  * @param{spVector}
