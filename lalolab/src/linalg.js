@@ -2495,7 +2495,7 @@ function minMatrixMatrix( A, B ) {
 	return new Matrix(A.m, A.n, minVectorVector(A.val, B.val), true);
 }
 function min(a,b) {
-	const ta = type(a);
+	var ta = type(a);
 	
 	if ( arguments.length == 1 ) {
 		switch( ta ) {
@@ -2525,8 +2525,24 @@ function min(a,b) {
 		}
 	}
 
-	const tb = type(b);
-	
+	var tb = type(b); 
+	if (ta == "spvector" ) {
+		a = fullVector(a);
+		ta = "vector";
+	}
+	if (ta == "spmatrix" ) {
+		a = fullMatrix(a);
+		ta = "matrix";
+	}
+	if (tb == "spvector" ) {
+		b = fullVector(b);
+		tb = "vector";
+	}
+	if (tb == "spmatrix" ) {
+		b = fullMatrix(b);
+		tb = "matrix";
+	}
+
 	if ( ta == "number" && tb == "number" ) 
 		return Math.min(a,b);
 	else if ( ta == "number") {
@@ -2660,18 +2676,55 @@ function maxMatrixMatrix( A, B ) {
 	return new Matrix(A.m, A.n, maxVectorVector(A.val, B.val), true);
 }
 function max(a,b) {
-	const ta = type(a);
-	const tb = type(b); 
-	
-	if ( tb == "undefined" ) {
-		if( ta == "vector" ) 
+	var ta = type(a);
+
+	if ( arguments.length == 1 ) {
+		switch( ta ) {
+		case "vector":
 			return maxVector(a);
-		else if( ta == "matrix" ) 	
+			break;
+		case "spvector":
+			var m = maxVector(a.val);
+			if ( m < 0 && a.val.length < a.length )
+				return 0;
+			else
+				return m;
+			break;
+		case "matrix":
 			return maxMatrix(a);
-		else 
+			break;
+		case "spmatrix":
+			var m = maxVector(a.val);
+			if ( m < 0 && a.val.length < a.m * a.n )
+				return 0;
+			else
+				return m;
+			break;
+		default:
 			return a;
+			break;
+		}
 	}
-	else if ( ta == "number" && tb == "number" ) 
+
+	var tb = type(b); 
+	if (ta == "spvector" ) {
+		a = fullVector(a);
+		ta = "vector";
+	}
+	if (ta == "spmatrix" ) {
+		a = fullMatrix(a);
+		ta = "matrix";
+	}
+	if (tb == "spvector" ) {
+		b = fullVector(b);
+		tb = "vector";
+	}
+	if (tb == "spmatrix" ) {
+		b = fullMatrix(b);
+		tb = "matrix";
+	}
+	
+	if ( ta == "number" && tb == "number" ) 
 		return Math.max(a,b);
 	else if ( ta == "number") {
 		if ( tb == "vector" )  

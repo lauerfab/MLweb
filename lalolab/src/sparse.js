@@ -1417,22 +1417,22 @@ function applyspMatrix( f, X ) {
 		for (i = 0; i < mn; i++)
 			C.val[i] = f0;
 	}
-	if ( B.rowmajor ) {
+	if ( X.rowmajor ) {
 		var ri = 0;
 		for (i = 0; i < m; i++) {
-			var s = B.rows[i];
-			var e = B.rows[i+1];
+			var s = X.rows[i];
+			var e = X.rows[i+1];
 			for (var k= s; k < e; k++)
-				C.val[ri + B.cols[k]] = f(B.val[k]);
+				C.val[ri + X.cols[k]] = f(X.val[k]);
 			ri += n;
 		}
 	}
 	else {
 		for (i = 0; i < n; i++) {
-			var s = B.cols[i];
-			var e = B.cols[i+1];
+			var s = X.cols[i];
+			var e = X.cols[i+1];
 			for (var k= s; k < e; k++)
-				C.val[B.rows[k] * n + i] += f(B.val[k]);
+				C.val[X.rows[k] * n + i] += f(X.val[k]);
 		}
 	}
 	return C;
