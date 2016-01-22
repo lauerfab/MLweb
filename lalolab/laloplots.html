@@ -75,7 +75,7 @@ console.log(plotinfo);
 
 	plot1 = new Plot(plotid) ;
 		
-	if ( plotinfo.minY && plotinfo.maxY ) {
+	if ( typeof(plotinfo.minY) == "number" && typeof(plotinfo.maxY) == "number" ) {
 		plot1.view(plotinfo.minX, plotinfo.maxX, plotinfo.minY, plotinfo.maxY); 
 	}
 	else 
