@@ -413,6 +413,22 @@ function speye(n) {
 	var cols = rows.slice(0,n);
 	return new spMatrix(n,n,val,cols,rows);
 }
+/**
+ * @param{Float64Array}
+ * @return{spMatrix}
+ */
+function spdiag(val) {
+	var n = val.length;
+	var rows = range(n+1);
+	var cols = rows.slice(0,n);
+	var tv = type(val);
+	if ( tv == "vector")
+		return new spMatrix(n,n,val,cols,rows);
+	else {
+		error("Error in spdiag( x ): x is a " + tv + " but should be a vector.");
+		return undefined;
+	}
+}
 
 /**
  * @param{spVector}

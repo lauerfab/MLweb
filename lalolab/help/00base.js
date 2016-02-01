@@ -43,6 +43,8 @@ HELPcontent["supp"] = ["Basics", "Support of a vector","indexes = supp( x )","Re
 // Sparse
 HELPcontent["sparse"] = ["Basics", "Sparse matrix/vector","A = sparse( X )\nA = sparse( X, rowmajor )\nb = sparse( x )","Return a sparse matrix or vector of \"spmatrix\" or \"spvector\" type such that full( sparse( X ) ) = X. By default sparse matrices are stored in row major (or row compressed) format, use sparse ( X, false ) for column major format.  "];
 HELPcontent["full"] = ["Basics", "Full matrix/vector","X = full( A )\nx = full( b )","Return a full matrix or vector of \"matrix\" or \"vector\" type such that sparse( full( A ) ) = A. "];
+HELPcontent["speye"] = ["Basics", "Sparse identity matrix","A = speye( n )","Return the identify matrix of size n by n in sparse format ( \"spmatrix\" ). "];
+HELPcontent["spdiag"] = ["Basics", "Sparse diagonal matrix","A = spdiag( a )","Return a sparse diagonal matrix with diagonal entries taken from the vector a. "];
 
 
 // Who / Delete
