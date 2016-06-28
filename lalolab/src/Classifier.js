@@ -237,7 +237,7 @@ Classifier.prototype.checkLabels = function ( labels, binary01 ) {
 	
 	var i;
 	for ( i = 0; i<labels.length; i++) {
-		if ( labels[i] || typeof(labels[i]) == "boolean" ) {
+		if ( typeof(labels[i]) != "undefined" ) {
 			y[i] = this.labels.indexOf( labels[i] );
 			if( y[i] < 0 ) {
 				y[i] = this.labels.length;
@@ -2063,12 +2063,33 @@ svm.train(m.Xtrain[0:100,:], m.Ytrain[0:100])
 	
 	var i;
 	const m = X.length;	
-	
 	var Xb;
-	if ( bias ) 
-		Xb = mat([X, ones(m)]);
-	else
-		Xb = X;
+	
+	switch(type(X)) {	
+		case "spmatrix":
+			if ( bias ) 
+				Xb = sparse(mat([full(X), ones(m)])); // TODO use spmat()
+			else
+				Xb = X;
+
+			var _dot = dotspVectorVector; 
+			var _saxpy = spsaxpy;
+			
+			break;
+		case "matrix":
+			if ( bias ) 
+				Xb = mat([X, ones(m)]);
+			else
+				Xb = X;	
+
+			var _dot = dot;
+			var _saxpy = saxpy;
+
+			break;
+		default:
+			return undefined;
+	}
+	
 		
 	const d = size(Xb,2);	
 		
@@ -2087,7 +2108,7 @@ svm.train(m.Xtrain[0:100,:], m.Ytrain[0:100])
 	var k = 0;
 	var u = 0.0;
 	var alpha_i = 0.0;
-	var Xbi;
+	var Xbi;	
 	
 	
 	var iter = 0;
