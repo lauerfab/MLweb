@@ -38,6 +38,7 @@ See [this benchmark](http://mlweb.loria.fr/benchmark/) for a comparison of LALOL
 - K-nearest neighbors,
 - Linear discriminant analysis,
 - Naive Bayes classifier,
+- Logistic regression,
 - Perceptron,
 - Multi-layer perceptron, 
 - Support vector machines, 
