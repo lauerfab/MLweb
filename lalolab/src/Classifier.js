@@ -4241,3 +4241,631 @@ DecisionTree.prototype.predict = function ( x ) {
 	else
 		return this.labels[pred(this.tree, x)];
 }
+
+
+//////////////////////////////////////////////////
+/////		Logistic Regression (LogReg)
+/////
+/////  by Pedro Ernesto Garcia Rodriguez, 2014-2015
+///////////////////////////////////////////////////
+
+function LogReg ( params ) {
+	var that = new Classifier ( LogReg, params);	
+	return that;
+}
+
+LogReg.prototype.construct = function (params) {
+	
+	// Default parameters:
+	
+	// Set parameters:
+	var i;
+	if ( params) {
+		for (i in params)
+			this[i] = params[i]; 
+	}		
+
+	// Parameter grid for automatic tuning:
+	this.parameterGrid = {   };
+}
+
+LogReg.prototype.tune = function ( X, labels ) {
+	var recRate = this.cv(X, labels);
+	return {error: (1-recRate), validationErrors: [(1-recRate)]};
+}
+
+LogReg.prototype.train = function ( X, labels ) {
+	// Training function
+
+	// should start by checking labels (and converting them to suitable numerical values): 
+	var y = this.checkLabels( labels ) ;
+	
+	// Call training function depending on binary/multi-class case
+	if ( this.labels.length > 2 ) {		
+		this.trainMulticlass(X, y);		
+	}
+	else {
+		var trainedparams = this.trainBinary(X, y);
+		this.w = trainedparams.w; 
+		this.b = trainedparams.b;
+		this.dim_input = size(X,2);
+	}
+	/* and return training error rate:
+	return (1 - this.test(X, labels));	*/
+	return this.info();
+}
+
+LogReg.prototype.predict = function ( x ) {
+	if ( this.labels.length > 2)
+		return this.predictMulticlass( x ) ;
+	else 
+		return this.predictBinary( x );		
+}
+LogReg.prototype.predictBinary = function ( x ) {
+	
+	var scores = this.predictscoreBinary( x , this.w, this.b);
+	if (typeof(scores) != "undefined")
+		return this.recoverLabels( sign( scores ) );
+	else
+		return "undefined";	
+}
+
+LogReg.prototype.predictMulticlass = function ( x ) {
+	
+	var scores = this.predictscore( x );
+	if (typeof(scores) != "undefined") {
+		
+		if ( type ( x ) == "matrix" ) {
+			// multiple predictions for multiple test data
+			var i;
+			var y = new Array(x.length );
+			for ( i = 0; i < x.length; i++)  {
+				var si = scores.row(i);
+				y[i] = findmax ( si );
+				if (si[y[i]] < 0) 
+					y[i] = this.labels.length-1;	// The test case belongs to the reference class Q, 
+													// i.e., the last one
+			}
+			return this.recoverLabels( y );
+		}
+		else {
+			// single prediction
+			y = findmax ( scores );
+			if (scores[y] < 0) 
+				y = this.labels.length-1;  // The test case belongs to the reference class Q, 
+										  // i.e., the last one
+			return this.recoverLabels( y );
+		}
+		
+	}
+	else
+		return "undefined";	
+}
+
+LogReg.prototype.predictscore = function( x ) {
+	var output;
+	if ( this.labels.length > 2) {
+		
+		// single prediction
+		if ( this.single_x( x ) ) {
+			output = add(mul(this.w,x), this.b);
+			return output;
+		}
+		else {
+		// multiple prediction for multiple test data
+			output = add(mul(x, transposeMatrix(this.w)), mul(ones(x.m), transposeVector(this.b)));
+			return output;
+		}	
+	}
+	else 
+		return this.predictscoreBinary( x, this.w, this.b );
+}
+
+LogReg.prototype.predictscoreBinary = function( x , w, b ) {
+	var output;
+	if ( this.single_x( x ) ) 
+		output = b + mul(x, w);
+	else 
+		output = add( mul(x, w) , b);
+	return output;
+}
+
+/// LogReg training for Binary Classification ////
+LogReg.prototype.trainBinary = function ( x, y ) {
+ 
+	//Adding a column of 'ones' to 'X' to accommodate the y-intercept 'b' 
+	var X = mat([x, ones(x.m)]);
+	
+	var MaxError = 1e-3;
+	// var LearningRate = 1e-6, MaxError = 1e-3, params = LogRegBinaryDetGradAscent(x, y, LearningRate, MaxError); 
+	// var LearningRate = 1e-6, MaxError = 1e-3, params = LogRegBinaryStochGradAscent(x, y, LearningRate, MaxError);
+	
+	const AlgorithmKind = "Newton-Raphson";
+	
+		
+	///	--- utility functions ---
+	function LogRegBinaryStochGradient(j,beta) {
+	
+		// Computing the jth-term of the Gradient of the Cost Function
+	 	// p = X.n-1 is the feature-space dimensionality.
+		// Note that input matrix 'X' contains a last column of 'ones' to accommodate the y-intercept 'b
+
+		var C = (y[j]==1 ? 1 : 0) - 1/(1 + Math.exp(-dot(beta,X.row(j)))); // Note that X.row(j) outputs a column instead a row vector. 
+				                                                           // Function dot() requires two column vectors
+
+		return mulScalarVector(C, X.row(j));
+	}
+
+	function LogRegBinaryDetGradient(beta) {
+
+		// Computing the Deterministic Gradient of the Cost Function
+	 	// p = X.n-1 is the feature-space dimensionality.
+		// Note that input matrix 'X' contains a last column of 'ones' to accommodate the y-intercept 'b
+	
+		var beta_grad = zeros(X.n) ; 
+	
+		for ( var i = 0; i < X.m; i++) {
+			var C = (y[i]==1 ? 1 : 0) - 1/(1 + Math.exp(-dot(beta,X.row(i))));  // Function dot() requires two column vectors. Note that 
+				                                                                // X.row(i) outputs a column instead a row vector.
+			beta_grad = addVectors(beta_grad, mulScalarVector(C, X.row(i)));
+		}
+	 
+		return beta_grad;
+	}
+
+	function LogRegBinaryHessian(beta) {
+	
+		// Computing the Hessian matrix of the Cost Function
+		// p = X.n-1 is the feature-space dimensionality.
+		// Note that input matrix 'X' contains a last column of 'ones' to accommodate the y-intercept 'b
+	
+		var v_diag = zeros(X.m);
+		for ( var i = 0; i < X.m; i++) {
+			var p = 1/(1 + Math.exp(-dot(beta,X.row(i))));
+			v_diag[i] = p*(p-1);
+		}	
+		var W = diag(v_diag);
+
+		var Hessian = mulMatrixMatrix(transposeMatrix(X), mulMatrixMatrix(W,X));
+	
+		return Hessian;
+	}
+
+	function LogRegBinaryCostFunction(beta) {
+	
+		// p = X.n-1 is the feature-space dimensionality.
+		// Note that input matrix 'X' contains a last column of 'ones' to accommodate the y-intercept 'b
+	
+		var L = 0;			
+		for ( var i = 0; i < X.m; i++ ) {
+			var betaXi = dot(beta,X.row(i));
+			var K = 1 + Math.exp(betaXi);
+			L -= Math.log(K);
+			if ( y[i] == 1 )
+				L += betaXi ;
+		}
+	
+		return L;
+	}
+
+
+	function LogRegBinaryLearningRate(beta_old, GradientOld_v, Lambda, LambdaMin, LambdaMax, MaxErrorL, MaxError) {
+
+		// Computing the first point 'beta_new' = (w_new, b_new)
+		beta = addVectors(beta_old, mulScalarVector(Lambda, GradientOld_v));
+		
+		do {
+			var Lambda_old = Lambda;
+		
+			// Computing the first derivative of the Cost Function respect to the learning rate "Lambda"
+			var GradientNew_v = LogRegBinaryDetGradient(beta);
+			var FirstDerivLambda = dot(GradientNew_v,GradientOld_v);
+		
+			// Computing the second derivative of the Cost Function respect to the learning rate "Lambda"
+			var HessianNew = LogRegBinaryHessian(beta);
+			var SecondDerivLambda = dot(GradientOld_v, mulMatrixVector(transposeMatrix(HessianNew), GradientOld_v));
+
+			if (!isZero(SecondDerivLambda)) { 
+				Lambda -= FirstDerivLambda/SecondDerivLambda;
+				// console.log("FirstDer:", FirstDerivLambda, "SecondDer:", SecondDerivLambda, -FirstDerivLambda/SecondDerivLambda, Lambda);
+				// console.log("Lambda:", Lambda, "Lambda_old:", Lambda_old, Lambda - Lambda_old);
+			}
+		
+			if (Lambda > LambdaMax || Lambda < LambdaMin)
+				Lambda = LambdaMin;
+		
+			// Updating the values of the parameters 'beta'
+			beta = addVectors(beta_old, mulScalarVector(Lambda, GradientOld_v));
+			
+		} while( Math.abs(Lambda-Lambda_old) > MaxErrorL && Math.abs(FirstDerivLambda) > MaxError );
+		// if (Lambda > LambdaMax || Lambda < LambdaMin) Lambda = Lambda_old;
+	
+		return Lambda;
+	}
+	// --- end of utility functions ---
+
+	if (AlgorithmKind == "Stochastic Gradient Ascent" ) {
+	
+	 	// Stochastic Gradient Optimization Algorithm
+	 	// to compute the Y-intercept 'b' and a p-dimensional vector 'w',
+		// where p = X.n is the feature-space dimensionality
+		// Note that input matrix 'X' contains a last column of 'ones' to accommodate the y-intercept 'b
+	
+		// Initial guess for values of parameters beta = w,b
+		var beta = divScalarVector(1,transpose(norm(X,1))); 
+	
+		var i = 0;
+		var CostFunctionOld;
+		var CostFunctionNew = LogRegBinaryCostFunction(beta);
+		do {
+			var beta_old = matrixCopy(beta);
+	
+			// LearningRate optimization
+			if (LearningRate > 1e-8) 
+				LearningRate *= 0.9999;
+		
+			// -- Updating the values of the parameters 'beta' --
+			// Doing a complete random sweep across the whole training set
+			// before verifying convergence 
+			var seq = randperm(X.m);
+			for ( var k = 0; k < X.m; k++) {
+			
+				index = seq[k];
+				var GradientOld_v = LogRegBinaryStochGradient(index, beta_old);
+		
+				// Updating the values of the parameters 'beta' with just 
+				// the index-th component of the Gradient
+				var Delta_params = mulScalarVector(LearningRate, GradientOld_v);
+				beta = addVectors(beta_old, Delta_params);
+			
+			}
+		
+			//  Checking convergence
+			if ( i%1000==0) {
+				CostFunctionOld = CostFunctionNew;
+				CostFunctionNew = LogRegBinaryCostFunction(beta);
+				console.log(AlgorithmKind, i, CostFunctionNew , CostFunctionOld, CostFunctionNew - CostFunctionOld);
+			}     
+			var GradientNorm = norm(GradientOld_v);
+			
+			//var PrmtRelativeChange = norm(subVectors(beta,beta_old))/norm(beta_old); 
+			// if (i%100 == 0) 
+				//console.log( AlgorithmKind, i, Math.sqrt(GradientNormSq), PrmtRelativeChange );
+
+			i++;
+
+		}  while (GradientNorm > MaxError ); // &&  PrmtRelativeChange > 1e-2);
+	
+		var w = getSubVector(beta, range(0, beta.length-1));
+		var b = get(beta, beta.length - 1);
+	}
+	else if ( AlgorithmKind == "Deterministic Gradient Ascent" ) {
+
+	 	// Deterministic Gradient Optimization Algorithm
+	 	// to compute the Y-intercept 'b' and a p-dimensional vector 'w',
+		// where p = X.n is the feature-space dimensionality
+		// Note that input matrix 'X' contains a last column of 'ones' to accommodate the y-intercept 'b
+	
+		// Initial guess for values of parameters beta = w,b
+		var beta = divScalarVector(1,transpose(norm(X,1))); 
+	
+
+		// For LearningRate optimization via a Newton-Raphson algorithm
+		var LambdaMin = 1e-12, LambdaMax = 1, MaxErrorL = 1e-9;
+	
+		var i = 0;
+		var CostFunctionOld;
+		var CostFunctionNew = LogRegBinaryCostFunction(beta);
+		do {
+			var beta_old = matrixCopy(beta);
+		
+			var GradientOld_v = LogRegBinaryDetGradient(beta_old);
+		
+			//  LearningRate optimization
+			// if (LearningRate > 1e-12) LearningRate *= 0.9999;
+
+			// Newton-Raphson algorithm for LearningRate
+			LearningRate = LogRegBinaryLearningRate(beta_old, GradientOld_v, LearningRate, LambdaMin, LambdaMax, MaxErrorL, MaxError);
+			
+			// Updating the values of the parameters 'beta'
+			var Delta_params = mulScalarVector(LearningRate, GradientOld_v);
+			beta = addVectors(beta_old, Delta_params);
+		
+			// Checking convergence		 
+			if ( i%100==0) {
+				CostFunctionOld = CostFunctionNew;
+				CostFunctionNew = LogRegBinaryCostFunction(beta);
+				console.log(AlgorithmKind, i, CostFunctionNew , CostFunctionOld, CostFunctionNew - CostFunctionOld);
+			} 
+			  
+			var GradientNorm = norm(GradientOld_v);
+			//var PrmtRelativeChange = norm(subVectors(beta,beta_old))/norm(beta_old); 
+			// if (i%100 == 0) 
+			//	console.log( AlgorithmKind, i, Math.sqrt(GradientNormSq), PrmtRelativeChange );
+
+			i++;
+	
+		} while ( GradientNorm > MaxError ); // &&  PrmtRelativeChange > 1e-2);
+	
+		var w = getSubVector(beta, range(0, beta.length-1));
+		var b = get(beta, beta.length - 1);
+	
+	}
+	else {
+	
+		// Newton-Raphson Optimization Algorithm
+	 	// to compute the y-intercept 'b' and a p-dimensional vector 'w',
+		// where p = X.n-1 is the feature-space dimensionality.
+		// Note that input matrix 'X' contains a last column of 'ones' to accommodate the y-intercept 'b
+	
+	  	// Initial guess for values of parameters beta = w,b
+		var beta = divScalarVector(1,transpose(norm(X,1))); 
+	
+		var i = 0;
+		var CostFunctionOld;
+		var CostFunctionNew = LogRegBinaryCostFunction(beta);
+		do {
+
+			var beta_old = vectorCopy(beta);
+		
+			var GradientOld_v = LogRegBinaryDetGradient(beta_old);
+		
+			var HessianOld = LogRegBinaryHessian(beta_old);
+				
+			//   Updating the values of the parameters 'beta' 
+			// var Delta_params = mul(inv(HessianOld),GradientOld_v);
+			var Delta_params = solve(HessianOld, GradientOld_v);
+			beta = subVectors(beta_old, Delta_params);
+
+			// Checking convergence
+			CostFunctionOld = CostFunctionNew;
+			CostFunctionNew = LogRegBinaryCostFunction(beta);
+			console.log(AlgorithmKind, i, CostFunctionNew , CostFunctionOld, CostFunctionNew - CostFunctionOld);
+				                      
+			var GradientNorm = norm(GradientOld_v);
+			// var PrmtRelativeChange = norm(subVectors(beta,beta_old))/norm(beta_old); 
+			//if (i%100 == 0) 
+				// console.log( AlgorithmKind + " algorithm:", i, Math.sqrt(GradientNormSq), PrmtRelativeChange );
+
+			i++;
+		
+		} while ( GradientNorm  > MaxError ); // &&  PrmtRelativeChange > 1e-2);
+	
+		var w = getSubVector(beta, range(0, beta.length-1));
+		var b = get(beta, beta.length - 1);
+			
+	}
+
+    return {w: w, b : b};
+}
+
+
+
+
+// LogReg Multi-class classification ////////////////////
+LogReg.prototype.trainMulticlass = function (x, y) {
+	
+	//Adding a column of 'ones' to 'X' to accommodate the y-intercept 'b' 
+	var X = mat([x,ones(x.m)]);
+	
+	var LearningRate = 1e-6;
+	var MaxError = 1e-3;
+	const Q = this.labels.length;
+	const AlgorithmKind = "NewtonRaphson";
+	
+
+	// Building a concatenated block-diagonal input matrix "X_conc",
+		// by repeating Q-1 times "X" as blocks in the diagonal.
+		// Order of X_conc is X.m*(Q-1) x X.n*(Q-1), where X.m = N (size of training set),
+		// X.n - 1 = p (feature-space dimensionality) and Q the quantity of classes.
+	
+	var X_conc = zeros(X.m*(Q-1),X.n*(Q-1));
+	for (var i_class = 0; i_class < Q-1; i_class++)
+	    set(X_conc, range(i_class*X.m, (i_class+1)*X.m), range(i_class*X.n, (i_class+1)*X.n), X);
+  
+  	var X_concT = transposeMatrix(X_conc);
+  	
+	// Building a concatenated column-vector of length (y.length)*(Q-1)
+		// with the Indicator functions for each class-otput
+
+	var Y_conc = zeros(y.length*(Q-1));
+	for (var i_class = 0; i_class < Q-1; i_class++)
+	   set(Y_conc, range(i_class*y.length, (i_class+1)*y.length), isEqual(y,i_class)); 
+	
+
+	///////////// Utility functions ///////////// 
+
+	function LogRegMultiDetGradient(beta) {
+
+		// Computing the Deterministic Gradient of the Cost Function
+		// p = X.n-1 is the feature-space dimensionality.
+		// Note that input matrix 'X' contains a last column of 'ones' to accommodate the y-intercept 'b
+	
+		// Computing the conditional probabilities for each Class and input vector
+		var pi = LogRegProbabilities(beta);
+			
+		return mulMatrixVector(X_concT, subVectors(Y_conc,pi));	
+	}
+
+	function LogRegProbabilities(beta) {
+		// Building a concatenated column-vector of length X.m*(Q-1) with
+		// the posterior probabilities for each Class and input vector
+		
+		var p = zeros((Q-1)*X.m);
+
+		var InvProbClassQ = LogRegInvProbClassQ(beta);
+		for ( var i = 0; i < X.m; i++ )
+		    for ( i_class = 0; i_class < Q-1; i_class++ ) {
+				var betaClass = getSubVector(beta, range(i_class*X.n,(i_class+1)*X.n));
+		        p[i_class*X.m + i] = Math.exp(dot(betaClass,X.row(i)))/InvProbClassQ[i];
+			}
+		return p;		
+	}
+
+	function LogRegInvProbClassQ(beta) {
+	
+		// Computes the inverse of the Posterior Probability that each input vector 
+		// is labeled with the reference Class (the last one is chosen here)
+	
+		var InvProbClass_Q = ones(X.m);	
+		for ( var i = 0; i < X.m; i++)
+			for ( var i_class = 0; i_class < Q-1; i_class++ ) {	
+				var betaClass = getSubVector(beta, range(i_class*X.n,(i_class+1)*X.n));
+				InvProbClass_Q[i] += Math.exp(dot(betaClass,X.row(i)));
+			}					
+		return InvProbClass_Q;
+	}
+
+	function LogRegMultiHessian(beta) {
+	   	// Computing the Hessian matrix of the Cost Function
+
+		
+		// Computing the conditional probabilities for each Class and input vector
+		var p = LogRegProbabilities(beta);
+
+		// Building the Hessian matrix: a concatenated block-diagonal input matrix "W_conc"
+		// of order X.m*(Q-1) x X.m*(Q-1), whose blocks W_jk are diagonal matrices as well
+		var W_conc = zeros(X.m*(Q-1),X.m*(Q-1));
+		for ( var j_class = 0; j_class < Q-1; j_class++ )
+		    for ( var k_class = 0; k_class < Q-1; k_class++ ) {
+		        var v_diag = zeros(X.m);
+		        for ( var i = 0; i < X.m; i++ ) 
+					v_diag[i] = p[j_class*X.m + i]*( (j_class == k_class? 1 : 0) - p[k_class*X.m + i] );
+				
+		        var W_jk = diag(v_diag);
+		        set(W_conc, range(j_class*X.m, (j_class+1)*X.m), range(k_class*X.m, (k_class+1)*X.m), W_jk);
+		    }
+		
+		var Hessian = mulMatrixMatrix(transposeMatrix(X_conc), mulMatrixMatrix(W_conc,X_conc));
+		
+		return minusMatrix(Hessian);
+	}
+
+	function LogRegMultiCostFunction(beta) {
+	
+		var InvProbClassQ = LogRegInvProbClassQ(beta);
+	
+		// Contribution from all the Classes but the reference Class (the last one is chosen here)
+		var L = 0;
+		for ( var i_class = 0; i_class < Q-1; i_class++ )
+			for ( var i = 0; i < X.m; i++ ) {
+				var betaClass = getSubVector(beta, range(i_class*X.n,(i_class+1)*X.n));
+				L += (y[i]==i_class? 1: 0)*(dot(betaClass,X.row(i)) - Math.log(InvProbClassQ[i]) );
+			}
+		
+		// Contribution from the reference Class (the last one is chosen here)		
+		for ( i = 0; i < X.m; i++ )
+			if ( y[i]==Q ) 
+				L -= Math.log(InvProbClassQ[i]);
+		
+		return L;
+	}
+
+	// --- end of utility functions ---
+
+	
+	if ( AlgorithmKind == "DetGradAscent" ) {
+	 	// Deterministic Gradient Optimization Algorithm
+	 	// to compute the (Q-1)-dimensional vector of y-intercept 'b' and a px(Q-1)-dimensional matrix 'w',
+		// where p = X.n-1 is the feature-space dimensionality and Q the quantity of classes.
+		// Note that input matrix 'X' contains a last column of 'ones' to accommodate the y-intercept 'b'
+	
+	  	// Initial guess for values of parameters beta
+	  	var beta = zeros((Q-1)*X.n);
+	  	for (var i_class = 0; i_class < Q-1; i_class++)
+			set(beta, range(i_class*X.n,(i_class+1)*X.n), divScalarVector(1,transpose(norm(X,1))));  
+	
+		var i = 0;
+		var CostFunctionOld;
+		var CostFunctionNew = LogRegMultiCostFunction(beta);
+		do {
+			var beta_old = vectorCopy(beta);
+//			var CostFunctionOld = LogRegMultiCostFunction(beta_old);
+			
+			var GradientOld_v = LogRegMultiDetGradient( beta_old);
+		
+			//   LearningRate optimization 
+			if (LearningRate > 1e-12) LearningRate *= 0.9999;
+		
+			//  Updating the values of the parameters 'beta'  
+		
+			var Delta_params = mulScalarVector(LearningRate, GradientOld_v);
+			beta = addVectors(beta_old, Delta_params);
+	
+			//  Checking convergence		
+			if ( i%100==0) {
+				CostFunctionOld = CostFunctionNew;
+				CostFunctionNew = LogRegMultiCostFunction(beta);
+				console.log(AlgorithmKind, i, CostFunctionNew , CostFunctionOld, CostFunctionNew - CostFunctionOld);
+			}
+			// var CostFunctionDiff = LogRegMultiCostFunction(X, y, Q, beta) - LogRegMultiCostFunction(X, y, Q, beta_old);                        
+		
+			var GradientNormSq = norm(GradientOld_v)*norm(GradientOld_v); 
+			//var PrmtRelativeChange = norm(subVectors(beta,beta_old))/norm(beta_old); 
+			//if (i%100 == 0) 
+			//	console.log( AlgorithmKind + " algorithm:", i, Math.sqrt(GradientNormSq), PrmtRelativeChange );
+		
+			i++;
+		
+		} while (Math.abs(CostFunctionNew - CostFunctionOld) > 1e-3); //Math.sqrt(GradientNormSq) > MaxError ); // &&  PrmtRelativeChange > 1e-2);
+	
+		var betaMatrix = reshape(beta, Q-1, X.n);
+		var w_new = get(betaMatrix, range(), range(0, betaMatrix.n-1));
+		var b_new = get(betaMatrix, range(), betaMatrix.n-1);
+		console.log(betaMatrix,w_new);
+	}
+	// else if (AlgorithmKind == "Newton-Raphson")
+	else {
+	     
+	 	// Newton-Raphson Optimization Algorithm
+	 	// to compute the (Q-1)-dimensional vector of y-intercept 'b' and a px(Q-1)-dimensional matrix 'w',
+		// where p = X.n-1 is the feature-space dimensionality and Q the quantity of classes.
+		// Note that input matrix 'X' contains a last column of 'ones' to accommodate the y-intercept 'b'
+	
+	  	// Initial guess for values of parameters beta
+	  	var beta = zeros((Q-1)*X.n);
+	  	for (var i_class = 0; i_class < Q-1; i_class++)
+			set(beta, range(i_class*X.n,(i_class+1)*X.n), divScalarVector(1,transpose(norm(X,1))));  
+
+		var i = 0;
+		var CostFunctionOld;
+		var CostFunctionNew = LogRegMultiCostFunction(beta);
+		do {
+		
+			var beta_old = vectorCopy(beta);			
+			var CostFunctionOld = LogRegMultiCostFunction(beta_old);
+			
+			var GradientOld_v = LogRegMultiDetGradient(beta_old);
+		
+			var HessianOld = LogRegMultiHessian(beta_old);
+		
+			//  Updating the values of the parameters 'beta' 
+			// var Delta_params = solveWithQRcolumnpivoting(HessianOld, GradientOld_v);
+			var Delta_params = solve(HessianOld, GradientOld_v);
+			beta = subVectors(beta_old, Delta_params);
+
+			// Checking convergence
+			CostFunctionOld = CostFunctionNew;
+			CostFunctionNew = LogRegMultiCostFunction(beta);
+			console.log(AlgorithmKind, i, CostFunctionNew , CostFunctionOld, CostFunctionNew - CostFunctionOld);
+				                      
+		
+			var GradientNorm = norm(GradientOld_v);
+			//var PrmtRelativeChange = norm(subVectors(beta,beta_old))/norm(beta_old); 
+			//if (i%100 == 0) 
+			//	console.log( AlgorithmKind + " algorithm:", i, Math.sqrt(GradientNormSq), PrmtRelativeChange );
+
+			i++;
+		
+		} while ( GradientNorm > MaxError ); // &&  PrmtRelativeChange > 1e-2);
+	
+		var betaMatrix = reshape(beta, Q-1, X.n);
+		var w_new = get(betaMatrix, range(), range(0, betaMatrix.n-1));
+		var b_new = get(betaMatrix, range(), betaMatrix.n-1);
+	}        
+	
+			
+	this.w = w_new;
+	this.b = b_new;
+	
+}
