@@ -2329,7 +2329,6 @@ MSVM.prototype.train = function (X, labels) {
 	var kc = new kernelCache( X , this.kernel, this.kernelpar ); 
 	K = new Array(); // to store kernel rows
 	
-	
 	// Create function that updates the gradient
 	var update_gradient; 
 	switch ( this.MSVMtype ) {
@@ -2573,6 +2572,14 @@ MSVM.prototype.train = function (X, labels) {
 		this.b = info.b;
 	
 	this.dim_input = size(X,2);
+	
+	this.kernelpar = kc.kernelpar;
+	if ( this.dim_input > 1 )
+		this.kernelFunc = kc.kernelFunc;	
+	else
+		this.kernelFunc = kernelFunction(this.kernel, this.kernelpar, "number"); // for scalar input kernelcache uses 1D-vectors
+	this.sparseinput = (kc.inputtype == "spvector"); 
+	
 	
 	/* and return training error rate:
 	return info.trainingError;*/
@@ -3218,48 +3225,48 @@ MSVM.prototype.predict = function ( x ) {
 	else
 		return "undefined";	
 }
-
 MSVM.prototype.predictscore = function( x ) {
 
 
 	const Q = this.labels.length;
+	const N = size(this.alpha,2);
+
 	if ( this.single_x( x ) ) {		
 	
 		var output = vectorCopy(this.b);
-		var K = kernelMatrix(this.SV, this.kernel, this.kernelpar,  x);
 		var i;
 		var k;
 		var range_k;
 		var partial;
 		
-		var alphaSV = transpose(get(this.alpha, [], this.SVindexes) );
-
 		for(i =0; i< this.SVindexes.length; i++ ) {
 			
 			//partial = sumVector( get(alphaSV, i, []) )
 			partial = 0;
 			for (k=0; k< Q; k++)
-				partial += alphaSV.val[i*Q+k];
+				partial += this.alpha.val[k*N + this.SVindexes[i] ];
+			
+			var Ki = this.kernelFunc(this.SV.row(i), x);
 			
 			for (k=0; k< Q; k++) {				
 			    
 			    switch ( this.MSVMtype ) {
 					case "CS":
 					    if(this.SVlabels[i] == k) 
-							output[k] += (partial - alphaSV.val[i*Q+k]) * K[i];	
+							output[k] += (partial - this.alpha.val[k*N + this.SVindexes[i] ]) * Ki ;	
 						else
-							output[k] -= alphaSV.val[i*Q+k] * K[i];
+							output[k] -= this.alpha.val[k*N + this.SVindexes[i] ] * Ki;
 						break;
 					case "LLW":
 					case "MSVM2":					
-						output[k] += (partial / Q - alphaSV.val[i*Q+k]) * K[i];
+						output[k] += (partial / Q - this.alpha.val[k*N + this.SVindexes[i] ]) * Ki;
 						break;
 					case "WW":
 					default:
 					    if(this.SVlabels[i] == k) 
-					    	output[k] += partial * K[i];
+					    	output[k] += partial * Ki;
 						else
-							output[k] -= alphaSV.val[i*Q+k] * K[i];
+							output[k] -= this.alpha.val[k*N + this.SVindexes[i] ] * Ki;
 						break;					
 				}
 	 	    }
@@ -3271,44 +3278,49 @@ MSVM.prototype.predictscore = function( x ) {
 		const m = x.length;
 		var output = zeros(m, Q);
 
-		var K = kernelMatrix(this.SV, this.kernel, this.kernelpar,  x);
 		var i;
 		var k;
 		var Kij;
 		var partial;
 
-		var alphaSV = transpose(get(this.alpha, [], this.SVindexes) );
+		// Cache SVs
+		var SVs = new Array(this.SVindexes.length);
+		for ( var j=0; j < this.SVindexes.length; j++) 
+			SVs[j] = this.SV.row(j);
+		
 		for (xi=0; xi < m; xi++) {
 			for (k=0; k< Q; k++)
 				output.val[xi*Q+k] = this.b[k];
 
+			var Xi = x.row(xi);
+			
 			for(i =0; i< this.SVindexes.length; i++ ) {
-				Kij = K.val[i*K.n+xi];
-
+				Kij = this.kernelFunc(SVs[i], Xi);
+				
 				//partial = sumVector( get(alphaSV, i, []) )
 				partial = 0;
 				for (k=0; k< Q; k++)
-					partial += alphaSV.val[i*Q+k];
+					partial += this.alpha.val[k*N + this.SVindexes[i] ];
 			
 				for (k=0; k< Q; k++) {				
 			    
 					switch ( this.MSVMtype ) {
 						case "CS":
 							if(this.SVlabels[i] == k) 
-								output.val[xi*Q+k] += (partial - alphaSV.val[i*Q+k]) * Kij;	
+								output.val[xi*Q+k] += (partial - this.alpha.val[k*N + this.SVindexes[i] ]) * Kij;	
 							else
-								output.val[xi*Q+k] -= alphaSV.val[i*Q+k] * Kij;
+								output.val[xi*Q+k] -= this.alpha.val[k*N + this.SVindexes[i] ] * Kij;
 							break;
 						case "LLW":
 						case "MSVM2":
-							output.val[xi*Q+k] += (partial / Q - alphaSV.val[i*Q+k]) * Kij;
+							output.val[xi*Q+k] += (partial / Q - this.alpha.val[k*N + this.SVindexes[i] ]) * Kij;
 							break;
 						case "WW":
 						default:
 							if(this.SVlabels[i] == k) 
 								output.val[xi*Q+k] += partial * Kij;
 							else
-								output.val[xi*Q+k] -= alphaSV.val[i*Q+k] * Kij;
+								output.val[xi*Q+k] -= this.alpha.val[k*N + this.SVindexes[i] ] * Kij;
 							break;					
 					}				
 		 	    }								
