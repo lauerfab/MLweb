@@ -129,16 +129,6 @@ var PrintMaxSize = 30; // max number of rows to print
 var autoPlotSizeLimit = 200; // max number of data to automatically plot with dblclick
 
 
-/* Prepare interaction with plot windows
-var plotWindows = new Array();
-
-function sendplotdata() {
-	// get first plot window in the queue
-	var pw = plotWindows.splice(0,1)[0]; 
-	// and send data to it
-	pw[0].plot(pw[1]); 
-}*/
-
 // Start Worker in the background
 var worker = new Worker("lalolabworker.js");
 
@@ -208,6 +198,37 @@ function browserinfomsg() {
 function browserinfoclick() {
 	browserinfo.style.display = "none";
 }
+function windowIsLoaded(win, command, data) {
+	/* Wait for plotting window to be ready before running the plotting command
+	
+		 plotwindow.addEventListener('load', function () { plotwindow.plot ( WorkerResult );}, true); 
+		 
+		 should be sufficient but does not work with IE.
+	*/
+	if ( typeof(win.isLoaded) != "undefined" && win.isLoaded ) {
+		switch(command) {
+			case "plot": 
+				win.plot(data);
+				break;
+			case "plot3": 
+				win.plot3(data);
+				break;
+			case "colorplot":
+				win.colorplot(data);
+				break;
+			case "image":
+				win.image(data);
+				break;
+			case "colormap": 
+				win.colormap(data);
+				break;
+			default:
+				break;
+		}
+	}
+	else
+		setTimeout( function () { windowIsLoaded(win, command, data); }, 100);
+}
 
 // Deal with Worker Output and print results
 function parseWorkerOutput  ( WorkerEvent ) {
@@ -243,52 +264,36 @@ function parseWorkerOutput  ( WorkerEvent ) {
 		var plotwindow = window.open("laloplots.html", "_blank" );		
 		if ( plotwindow == null) 
 			popupalert();
-		else if ( typeof(plotwindow.addEventListener) == "undefined") 
-			setTimeout(function () { plotwindow.plot ( WorkerResult );}, 1500);// for IE
 		else
-			plotwindow.addEventListener('load', function () { plotwindow.plot ( WorkerResult );}, true); 
-	/*
-	ANOTHER METHOD: 
-			else
-			plotWindows.push([plotwindow, WorkerResult]);		
-	*/
-
+			windowIsLoaded( plotwindow, "plot", WorkerResult );
 	}
 	else if (WorkerCommand.indexOf("colorplot(") == 0 ) {
 		var plotwindow = window.open("laloplots.html", "_blank" );		
 		if ( plotwindow == null) 
 			popupalert();
-		else if ( typeof(plotwindow.addEventListener) == "undefined") 
-			setTimeout(function () { plotwindow.colorplot ( WorkerResult );}, 1500);// for IE
 		else
-			plotwindow.addEventListener('load', function () { plotwindow.colorplot ( WorkerResult );}, true);  
+			windowIsLoaded( plotwindow, "colorplot", WorkerResult );
 	}
 	else if (WorkerCommand.indexOf("plot3(") == 0 ) {
 		var plotwindow = window.open("laloplots.html", "_blank" );		
 		if ( plotwindow == null) 
 			popupalert();
-		else if ( typeof(plotwindow.addEventListener) == "undefined") 
-			setTimeout(function () { plotwindow.plot3 ( WorkerResult );}, 1500);// for IE
 		else
-			plotwindow.addEventListener('load', function () { plotwindow.plot3 ( WorkerResult );}, true);  
+			windowIsLoaded( plotwindow, "plot3", WorkerResult );
 	}
 	else if (WorkerCommand.indexOf("image(") == 0 ) {
 		var plotwindow = window.open("laloplots.html", "_blank" );		
 		if ( plotwindow == null) 
 			popupalert();
-		else if ( typeof(plotwindow.addEventListener) == "undefined") 
-			setTimeout(function () { plotwindow.image ( WorkerResult );}, 1500);// for IE
 		else
-			plotwindow.addEventListener('load', function () { plotwindow.image ( WorkerResult );}, true);  
+			windowIsLoaded( plotwindow, "image", WorkerResult );
 	}
 	else if (WorkerCommand.indexOf("colormap(") == 0 ) {
 		var plotwindow = window.open("laloplots.html", "_blank" );		
 		if ( plotwindow == null) 
 			popupalert();
-		else if ( typeof(plotwindow.addEventListener) == "undefined") 
-			setTimeout(function () { plotwindow.colormap ( WorkerResult );}, 1500);// for IE
 		else
-			plotwindow.addEventListener('load', function () { plotwindow.colormap ( WorkerResult );}, true);  
+			windowIsLoaded( plotwindow, "colormap", WorkerResult );
 	}
 	else if (WorkerCommand == "SAVE") {
 		saveBlob(WorkerResult);

@@ -11,7 +11,7 @@
 	<script type="text/javascript" src="../mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 	-->
 </head>
-<body> <!--  onload="window.opener.sendplotdata();"> -->
+<body onload="isLoaded=true;"> <!--  onload="window.opener.sendplotdata();"> -->
 
 <div id="header">
 <p class="booktitle">
@@ -38,6 +38,9 @@ LALO<sup><i>Lab</i></sup>: the Linear ALgebra Online Lab
 	</div></div>
 </div>
 <script>
+
+var isLoaded = false; // is window ready?
+
 //////////////
 // Plots
 //////////////
