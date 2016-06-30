@@ -112,6 +112,9 @@ Welcome!
 
 </div>
 
+<div id="browserinfo" onclick="browserinfoclick();">
+</div>
+
 <script>
 
 var Ncmds = 0; // number of commands executed
@@ -168,6 +171,42 @@ function bodyOnLoad() {
 			}, 500);			
 	}
 	cmdline.focus();
+	
+	//browserinfomsg();
+}
+
+/// Browser info
+function browserinfomsg() {
+	var ua = navigator.userAgent.toLowerCase();
+	if ( ua.indexOf("firefox") >= 0 ) {
+		var browser = "firefox";
+	}
+	else if ( ua.indexOf("chrom") >= 0 ) {
+		var browser = "chrome";
+	}
+	else if ( ua.indexOf("safari") >= 0 ) {
+		var browser = "safari";
+	}
+	else if ( ua.indexOf("explorer") >= 0 ) {
+		var browser = "ie";	
+	}
+	
+	browserinfo.innerHTML = "";
+	switch(browser) {
+		case "ie":
+			browserinfo.innerHTML = "You are using Internet Explorer. For a better experience, consider using Firefox or Chrome.<br>";
+			browserinfo.style.display = "block";
+			break;
+		case "firefox":
+		case "chrome":
+		case "safari":
+		default:
+			break;
+	}
+	
+}
+function browserinfoclick() {
+	browserinfo.style.display = "none";
 }
 
 // Deal with Worker Output and print results
@@ -202,7 +241,7 @@ function parseWorkerOutput  ( WorkerEvent ) {
 	var html = "";
 	if (WorkerCommand.indexOf("plot(") == 0 && WorkerResult != "undefined") {
 		var plotwindow = window.open("laloplots.html", "_blank" );		
-		if ( typeof(plotwindow) == "undefined") 
+		if ( plotwindow == null) 
 			popupalert();
 		else if ( typeof(plotwindow.addEventListener) == "undefined") 
 			setTimeout(function () { plotwindow.plot ( WorkerResult );}, 1500);// for IE
@@ -217,7 +256,7 @@ function parseWorkerOutput  ( WorkerEvent ) {
 	}
 	else if (WorkerCommand.indexOf("colorplot(") == 0 ) {
 		var plotwindow = window.open("laloplots.html", "_blank" );		
-		if ( typeof(plotwindow) == "undefined") 
+		if ( plotwindow == null) 
 			popupalert();
 		else if ( typeof(plotwindow.addEventListener) == "undefined") 
 			setTimeout(function () { plotwindow.colorplot ( WorkerResult );}, 1500);// for IE
@@ -226,7 +265,7 @@ function parseWorkerOutput  ( WorkerEvent ) {
 	}
 	else if (WorkerCommand.indexOf("plot3(") == 0 ) {
 		var plotwindow = window.open("laloplots.html", "_blank" );		
-		if ( typeof(plotwindow) == "undefined") 
+		if ( plotwindow == null) 
 			popupalert();
 		else if ( typeof(plotwindow.addEventListener) == "undefined") 
 			setTimeout(function () { plotwindow.plot3 ( WorkerResult );}, 1500);// for IE
@@ -235,7 +274,7 @@ function parseWorkerOutput  ( WorkerEvent ) {
 	}
 	else if (WorkerCommand.indexOf("image(") == 0 ) {
 		var plotwindow = window.open("laloplots.html", "_blank" );		
-		if ( typeof(plotwindow) == "undefined") 
+		if ( plotwindow == null) 
 			popupalert();
 		else if ( typeof(plotwindow.addEventListener) == "undefined") 
 			setTimeout(function () { plotwindow.image ( WorkerResult );}, 1500);// for IE
@@ -244,7 +283,7 @@ function parseWorkerOutput  ( WorkerEvent ) {
 	}
 	else if (WorkerCommand.indexOf("colormap(") == 0 ) {
 		var plotwindow = window.open("laloplots.html", "_blank" );		
-		if ( typeof(plotwindow) == "undefined") 
+		if ( plotwindow == null) 
 			popupalert();
 		else if ( typeof(plotwindow.addEventListener) == "undefined") 
 			setTimeout(function () { plotwindow.colormap ( WorkerResult );}, 1500);// for IE
@@ -391,7 +430,7 @@ window.onerror = function ( e ) {
 }
 
 function popupalert() {
-	alert("Cannot open window for plot.\nPlease make sure to enable popups in the browser preferences (at least for this page).");
+	alert("Cannot open window for plot.\nPlease allow pop-ups in the browser preferences (at least for this site) and run the plot command again.");
 }
 
 function removeSpaces( str ) {
