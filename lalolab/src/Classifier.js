@@ -2433,7 +2433,7 @@ MSVM.prototype.train = function (X, labels) {
 	
 	do {
 		// Working set selection: chunk = data indexes	
-		if ( this.MSVMtype == "CS" ) {
+		if ( this.MSVMtype == "CS" && iter > 0.2*N/chunk_size && (iter % 100 < 80) ) {
 			chunk = MSVM_CS_workingset_selection(chunk_size, N, Q, alpha, gradient); 
 		}
 		else {
@@ -2872,7 +2872,7 @@ function MSVM_CS_lp (Q,C, y, alpha, gradient, chunk,chunk_vars) {
 	lp_A = zeros(lp_nRows, lp_nCols);
 	for(i=0; i<chunk_size; i++) {
 		//set(lp_A, i, range(i*Q, (i+1)*Q), ones(Q) );
-		for ( l = i*Q; i < (i+1)*Q; l++)
+		for ( l = i*Q; l < (i+1)*Q; l++)
 			lp_A.val[lp_nCols*i + l] = 1;
 	}
 	
@@ -3201,8 +3201,11 @@ MSVM.prototype.predict = function ( x ) {
 
 	var scores = this.predictscore( x );
 	if (typeof(scores) != "undefined") {
-		
-		if ( type ( x ) == "matrix" ) {
+		if ( this.single_x( x ) ) {		
+			// single prediction
+			return this.recoverLabels( argmax( scores ) );
+		}
+		else {
 			// multiple predictions for multiple test data
 			var i;
 			var y = new Float64Array(x.length );
@@ -3210,12 +3213,7 @@ MSVM.prototype.predict = function ( x ) {
 				y[i] = findmax ( scores.row(i) ) ;
 			}
 			return this.recoverLabels( y );
-		}
-		else {
-			// single prediction
-			return this.recoverLabels( argmax( scores ) );
-		}
-		
+		}		
 	}
 	else
 		return "undefined";	
