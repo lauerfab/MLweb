@@ -181,7 +181,19 @@ a.helpcmd:hover {
 	left: 50%;
 	font-weight: normal;
 }
-
+#browserinfo {
+	position: fixed;
+	left: 0;
+	bottom: 0;
+	height: 1em;
+	width: 100%;
+	background-color: rgba(0,255,0,0.3);
+	border: 5px solid rgba(0,255,0,0.3);
+	border-radius: 5px;
+	font-size: 80%;
+	padding: 0.5em;
+	display: none;
+}
 .hiddenfilebtn {
 	position: absolute;
 	top: 0;
