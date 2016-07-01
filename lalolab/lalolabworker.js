@@ -686,21 +686,31 @@ function colorplot(multiargs) {
 	var z;
 	var i;
 
+	var title = undefined;
+	
 	var t0 =  type( arguments[0] );
 	if ( t0 == "matrix" && arguments[0].n == 3 ) {
 		x = getCols(arguments[0], [0]);
 		y = getCols(arguments[0], [1]);
 		z = getCols(arguments[0], [2]);
+		
+		if (arguments.length == 2 && typeof(arguments[1]) == "string")
+			title = arguments[1];
 	}
 	else if ( t0 == "matrix" && arguments[0].n == 2 && type(arguments[1]) == "vector" ) {
 		x = getCols(arguments[0], [0]);
 		y = getCols(arguments[0], [1]);
 		z = arguments[1];
+		if (arguments.length == 3 && typeof(arguments[2]) == "string")
+			title = arguments[2];
 	}
 	else if (t0 == "vector" && type(arguments[1]) == "vector" && type(arguments[2]) == "vector") {
 		x = arguments[0];
 		y = arguments[1];
 		z = arguments[2];
+		
+		if (arguments.length == 4 && typeof(arguments[3]) == "string")
+			title = arguments[3];
 	}
 	else {
 		return "undefined";
@@ -727,7 +737,7 @@ function colorplot(multiargs) {
 	if ( maxY < 0 ) 
 		maxY = -0.1*minY;
 
-	postMessage( { "cmd" : "colorplot() opened in new window", "output" :  {"x" : x, "y": y, "z": z, "minX" : minX, "maxX" : maxX, "minY" : minY, "maxY": maxY,  "minZ" : minZ, "maxZ" : maxZ }} );			
+	postMessage( { "cmd" : "colorplot() opened in new window", "output" :  {"x" : x, "y": y, "z": z, "minX" : minX, "maxX" : maxX, "minY" : minY, "maxY": maxY,  "minZ" : minZ, "maxZ" : maxZ , "title": title}} );			
 
 	return "LALOLABPLOT";
 	

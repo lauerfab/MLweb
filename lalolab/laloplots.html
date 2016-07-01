@@ -186,6 +186,15 @@ function colorplot( plotinfo ) {
 
 	outputplots.innerHTML += "<a onmousemove='mouseposition(event);' onmousedown='mousestartmove(event);' onmouseup='mousestopmove(event);' onmouseleave='mousestopmove(event);' ondblclick='zoomoriginal();'><canvas id='" +plotid + "'  width='500' height='500' class='plots'></canvas></a>"; 
 	
+	
+	var title = plotinfo.title;
+	if(title) {
+		document.title = title;
+		plottitle.innerHTML += title;
+	}
+	else
+		document.title = "LALOLab color plot";
+
 	plot1 = new ColorPlot(plotid) ;
 	plot1.setScale(plotinfo.minX, plotinfo.maxX, plotinfo.minY, plotinfo.maxY,plotinfo.minZ, plotinfo.maxZ); 
 	plot1.view(plotinfo.minX, plotinfo.maxX, plotinfo.minY, plotinfo.maxY); 	
