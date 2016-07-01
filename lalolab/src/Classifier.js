@@ -2208,7 +2208,7 @@ MSVM.prototype.construct = function (params) {
 	
 	this.C = 1;
 	
-	this.optimAccuracy = 0.98;
+	this.optimAccuracy = 0.97;
 	this.maxIter = 1000000;
 	
 	
@@ -2518,7 +2518,7 @@ MSVM.prototype.train = function (X, labels) {
 				update_gradient( chunk, alpha_update ) ; 
 				
 				//	console.log(H_alpha, alpha, gradient, alpha_update);
-			}
+			}			
 		}
 			
 		if ( iter % infoStep == 0 ) {
