@@ -530,17 +530,8 @@ populateHelp();
 
 <script>
 
-var lab = new Lalolab() ; // create a new Lalolab
+var lab = new Lalolab("mylab",false,"./") ; // create a new Lalolab
 
-// show examples in <pre> 
-for ( var i = 1; i < 10; i++) {
-	if ( typeof(self["ex" + i ] ) == "function" ) {
-		var lines = self["ex" + i ].toString().split("\n");	
-		lines.splice(0,1);
-		lines.pop();		
-		document.getElementById("pre"+i).innerHTML = "Example " + i + ":\n" + lines.join("\n").split("<br>").join("&lt;br&gt;");
-	}	
-}
 
 function ex1 () {
 	var a = rand(3);
@@ -568,20 +559,39 @@ function ex3 () {
 }
 
 var mylabs = new Array();
-function ex4 () {
-	var i;
-	res4.innerHTML = "";
-	for (i=0; i < 4; i++) {
-		res4.innerHTML += "Creating mylab #" + i + "...<br>";
-		mylabs[i] = new Lalolab("mylab #" + i); 
+if (window.location.href.indexOf("http://mlweb") >= 0) {
+	ex4 = function () {
+		var i;
+		res4.innerHTML = "";
+		for (i=0; i < 4; i++) {
+			res4.innerHTML += "Creating mylab #" + i + "...<br>";
+			mylabs[i] = new Lalolab("mylab #" + i); 
+		}
+		for (i=0; i < 4; i++) {
+			res4.innerHTML += "Computing in mylab #" + i + "...<br>";
+			mylabs[i].do("X = rand(200,300)");	
+			mylabs[i].do("svd(X)", function ( result, cmd, labid ) {
+				res4.innerHTML += "The singular values computed by " + labid + " are " + result[0] + ", " + result[1] + "...<br>"; 
+			}); 
+		}	
 	}
-	for (i=0; i < 4; i++) {
-		res4.innerHTML += "Computing in mylab #" + i + "...<br>";
-		mylabs[i].do("X = rand(200,300)");	
-		mylabs[i].do("svd(X)", function ( result, cmd, labid ) {
-			res4.innerHTML += "The singular values computed by " + labid + " are " + result[0] + ", " + result[1] + "...<br>"; 
-		}); 
-	}	
+}
+else {
+	ex4 = function () {
+		var i;
+		res4.innerHTML = "";
+		for (i=0; i < 4; i++) {
+			res4.innerHTML += "Creating mylab #" + i + "...<br>";
+			mylabs[i] = new Lalolab("mylab #" + i, false, "./"); // use explicit path for the local copy of lalolibworker.js
+		}
+		for (i=0; i < 4; i++) {
+			res4.innerHTML += "Computing in mylab #" + i + "...<br>";
+			mylabs[i].do("X = rand(200,300)");	
+			mylabs[i].do("svd(X)", function ( result, cmd, labid ) {
+				res4.innerHTML += "The singular values computed by " + labid + " are " + result[0] + ", " + result[1] + "...<br>"; 
+			}); 
+		}	
+	}
 }
 
 function ex5 () {
@@ -605,6 +615,17 @@ function ex7 () {
 	});	
 }
 
+
+
+// show examples in <pre> 
+for ( var i = 1; i < 10; i++) {
+	if ( typeof(self["ex" + i ] ) == "function" ) {
+		var lines = self["ex" + i ].toString().split("\n");	
+		lines.splice(0,1);
+		lines.pop();		
+		document.getElementById("pre"+i).innerHTML = "Example " + i + ":\n" + lines.join("\n").split("<br>").join("&lt;br&gt;");
+	}	
+}
 </script>
 
 <br><br><br><br><br><br><br><br>
