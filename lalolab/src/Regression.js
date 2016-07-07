@@ -111,6 +111,7 @@ Regression.prototype.tune = function ( X, y, Xv, yv ) {
 				bestfit = stats.fit;
 				bestpar = this[parnames[0]];
 			}
+			notifyProgress( p / this.parameterGrid[parnames[0]].length ) ;
 		}
 		
 		// retrain with all data
@@ -124,7 +125,8 @@ Regression.prototype.tune = function ( X, y, Xv, yv ) {
 		// 2 hyperparameters
 		validationErrors = zeros(this.parameterGrid[parnames[0]].length, this.parameterGrid[parnames[1]].length);
 		var bestpar = new Array(2); 		
-
+		
+		var iter = 0;
 		for ( var p0 =0; p0 <  this.parameterGrid[parnames[0]].length; p0++ ) {
 			this[parnames[0]] = this.parameterGrid[parnames[0]][p0];
 
@@ -147,6 +149,8 @@ Regression.prototype.tune = function ( X, y, Xv, yv ) {
 					bestpar[0] = this[parnames[0]];
 					bestpar[1] = this[parnames[1]];
 				}
+				iter++;
+				notifyProgress( iter / (this.parameterGrid[parnames[0]].length *this.parameterGrid[parnames[1]].length) ) ;
 			}
 		}
 		
@@ -162,6 +166,7 @@ Regression.prototype.tune = function ( X, y, Xv, yv ) {
 		// too many hyperparameters... 
 		error("Too many hyperparameters to tune.");
 	}	
+	notifyProgress( 1 ) ;
 	return {error: minValidError, fit: bestfit, validationErrors: validationErrors};
 }
 

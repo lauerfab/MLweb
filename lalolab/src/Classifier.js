@@ -155,6 +155,7 @@ Classifier.prototype.tune = function ( X, y, Xv, yv ) {
 				if ( minValidError < 1e-4 )
 					break;					
 			}
+			notifyProgress( p / this.parameterGrid[parnames[0]].length ) ;
 		}
 		
 		// retrain with all data
@@ -169,6 +170,7 @@ Classifier.prototype.tune = function ( X, y, Xv, yv ) {
 		validationErrors = zeros(this.parameterGrid[parnames[0]].length, this.parameterGrid[parnames[1]].length);
 		var bestpar = new Array(2); 		
 
+		var iter = 0;
 		for ( var p0 =0; p0 <  this.parameterGrid[parnames[0]].length; p0++ ) {
 			this[parnames[0]] = this.parameterGrid[parnames[0]][p0];
 
@@ -195,9 +197,11 @@ Classifier.prototype.tune = function ( X, y, Xv, yv ) {
 						break;					
 
 				}
-				if ( minValidError < 1e-4 )
-					break;
+				iter++;
+				notifyProgress( iter / (this.parameterGrid[parnames[0]].length *this.parameterGrid[parnames[1]].length) ) ;
 			}
+			if ( minValidError < 1e-4 )
+				break;
 		}
 		
 		// retrain with all data
@@ -212,6 +216,8 @@ Classifier.prototype.tune = function ( X, y, Xv, yv ) {
 		// too many hyperparameters... 
 		error("Too many hyperparameters to tune.");
 	}	
+	
+	notifyProgress( 1 ) ;
 	return {error: minValidError,  validationErrors: validationErrors};
 }
 
@@ -855,7 +861,7 @@ MLP.prototype.construct = function (params) {
 	}		
 
 	// Parameter grid for automatic tuning:
-	this.parameterGrid = undefined; 
+	this.parameterGrid = {"hidden": [3, 5, 8, 12] } ; 
 }
 MLP.prototype.train = function (X, labels) {
 	// Training function
@@ -1381,7 +1387,8 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 		var i;
 		var fold;
 		for ( fold = 0; fold < nFolds - 1; fold++) {
-		console.log("fold" + fold);
+			console.log("fold " + fold);
+			notifyProgress ( fold / nFolds);
 			Xte = get(X, get(perm, range(fold * foldsize, (fold+1)*foldsize)), []);
 			Yte = get(labels, get(perm, range(fold * foldsize, (fold+1)*foldsize)) );
 		
@@ -1433,7 +1440,8 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 				}
 			}
 		}
-		console.log("fold" + fold);
+		console.log("fold " + fold);
+		notifyProgress ( fold / nFolds);
 		// last fold:
 		Xtr = get(X, get(perm, range(0, fold * foldsize)), []);
 		Ytr = get(labels, get(perm, range(0, fold * foldsize ) ) ); 
@@ -1511,7 +1519,8 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 		//this.alphaseeding.use = false;
 		
 		// Retrain on all data
-		this.train(X, labels);		
+		this.train(X, labels);
+		notifyProgress ( 1 );		
 	}
 	
 	// Restore the dimension-free kernelpar range 
@@ -2369,14 +2378,16 @@ MSVM.prototype.construct = function (params) {
 		case "Gaussian":
 		case "RBF":
 		case "rbf": 
-			this.parameterGrid = { "kernelpar": [0.1,0.2,0.5,1,2,5] , "C" : [ 0.1, 1, 5, 10, 50] };
+			// use multiples powers of 1/sqrt(2) for sigma => efficient kernel updates by squaring
+			this.parameterGrid = { "kernelpar": pow(1/Math.sqrt(2), range(-1,9)), "C" : [ 0.1, 1, 5, 10] };
+			//this.parameterGrid = { "kernelpar": [0.1,0.2,0.5,1,2,5] , "C" : [ 0.1, 1, 5, 10, 50] };
 			break;
 			
 		case "poly":
-			this.parameterGrid = { "kernelpar": [3,5,7,9] , "C" : [ 0.1, 1, 5, 10, 50] };
+			this.parameterGrid = { "kernelpar": [3,5,7,9] , "C" : [ 0.1, 1, 5, 10] };
 			break;
 		case "polyh":
-			this.parameterGrid = { "kernelpar": [3,5,7,9] , "C" : [ 0.1, 1, 5, 10, 50] };
+			this.parameterGrid = { "kernelpar": [3,5,7,9] , "C" : [ 0.1, 1, 5, 10] };
 			break;
 		default:
 			this.parameterGrid = undefined; 
@@ -2384,6 +2395,246 @@ MSVM.prototype.construct = function (params) {
 	}
 }
 
+MSVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
+	// Tunes the SVM given a training set (X,labels) by cross-validation or using validation data
+
+	/* Fast implementation uses the same kernel cache for all values of C 
+		and kernel updates when changing the kernelpar.
+		
+		We aslo use alpha seeding when increasing C.
+	*/
+	
+	// Set the kernelpar range with the dimension
+	if ( this.kernel == "rbf" ) {
+		var saveKpGrid = zeros(this.parameterGrid.kernelpar.length);
+		for ( var kp = 0; kp < this.parameterGrid.kernelpar.length ; kp ++) {
+			saveKpGrid[kp] = this.parameterGrid.kernelpar[kp];
+			if ( typeof(this.kernelpar) == "undefined")
+				this.parameterGrid.kernelpar[kp] *= Math.sqrt( X.n ); 			
+		}
+		if ( typeof(this.kernelpar) != "undefined")
+			this.parameterGrid.kernelpar = mul(this.kernelpar, range(1.4,0.7,-0.1)); 
+	}
+	
+	
+	if ( arguments.length == 4 ) {
+		// validation set (Xv, labelsv)
+		
+		if ( this.kernel == "linear" ) {
+			// test all values of C 
+			var validationErrors = zeros(this.parameterGrid.C.length);
+			var minValidError = Infinity;
+			var bestC;
+			
+			for ( var c = 0; c < this.parameterGrid.C.length; c++) {
+				this.C = this.parameterGrid.C[c];
+				this.train(X,labels);
+				validationErrors[c] = 1.0 - this.test(Xv,labelsv);
+				if ( validationErrors[c] < minValidError ) {
+					minValidError = validationErrors[c];
+					bestC = this.C;					
+				}
+			}
+			this.C = bestC;
+			
+			this.train(mat([X,Xv]), mat([labels,labelsv]) ); // retrain with best values and all data
+		}
+		else {
+			// grid of ( kernelpar, C) values
+			var validationErrors = zeros(this.parameterGrid.kernelpar.length, this.parameterGrid.C.length);
+			var minValidError = Infinity;
+			
+			var bestkernelpar;
+			var bestC;
+			
+			var kc = new kernelCache( X , this.kernel, this.parameterGrid.kernelpar[0] ); 
+
+			for ( var kp = 0; kp < this.parameterGrid.kernelpar.length; kp++) {
+				this.kernelpar = this.parameterGrid.kernelpar[kp];
+				if ( kp > 0 ) {
+					kc.update( this.kernelpar );
+				}
+				for ( var c = 0; c < this.parameterGrid.C.length; c++) {
+					this.C = this.parameterGrid.C[c];
+					this.train(X,labels, kc);	// use the same kernel cache for all values of C
+					validationErrors.set(kp,c, 1.0 - this.test(Xv,labelsv) );
+					if ( validationErrors.get(kp,c) < minValidError ) {
+						minValidError = validationErrors.get(kp,c);
+						bestkernelpar = this.kernelpar;
+						bestC = this.C;
+					}
+				}
+			}
+			this.kernelpar = bestkernelpar;
+			this.C = bestC;
+			this.train(mat([X,Xv], true), mat([labels,labelsv], true) ); // retrain with best values and all data
+		}				
+	}
+	else {
+		
+		// 5-fold Cross validation
+		const nFolds = 5;
+	
+		const N = labels.length;
+		const foldsize = Math.floor(N / nFolds);
+	
+		// Random permutation of the data set
+		var perm = randperm(N);
+	
+		// Start CV
+		if ( this.kernel == "linear" ) 
+			var validationErrors = zeros(this.parameterGrid.C.length);
+		else 
+			var validationErrors = zeros(this.parameterGrid.kernelpar.length,this.parameterGrid.C.length);
+		
+	
+		var Xtr, Ytr, Xte, Yte;
+		var i;
+		var fold;
+		for ( fold = 0; fold < nFolds - 1; fold++) {
+			console.log("fold " + fold);
+			Xte = get(X, get(perm, range(fold * foldsize, (fold+1)*foldsize)), []);
+			Yte = get(labels, get(perm, range(fold * foldsize, (fold+1)*foldsize)) );
+		
+			var tridx = new Array();
+			for (i=0; i < fold*foldsize; i++)
+				tridx.push(perm[i]);
+			for (i=(fold+1)*foldsize; i < N; i++)
+				tridx.push(perm[i]);
+		
+			Xtr =  get(X, tridx, []);
+			Ytr = get(labels, tridx);
+
+			
+			if ( this.kernel == "linear" ) {
+				// test all values of C 		
+				for ( var c = 0; c < this.parameterGrid.C.length; c++) {
+					this.C = this.parameterGrid.C[c];
+					console.log("training with C = " + this.C); // + " on " , tridx, Xtr, Ytr);
+					this.train(Xtr,Ytr);
+					validationErrors[c] += 1.0 - this.test(Xte,Yte) ;					
+				}
+			}
+			else {
+				// grid of ( kernelpar, C) values
+			
+				var kc = new kernelCache( Xtr , this.kernel, this.parameterGrid.kernelpar[0] ); 
+
+				for ( var kp = 0; kp < this.parameterGrid.kernelpar.length; kp++) {
+					this.kernelpar = this.parameterGrid.kernelpar[kp];
+					if ( kp > 0 ) {
+						kc.update( this.kernelpar );
+					}
+					for ( var c = 0; c < this.parameterGrid.C.length; c++) {
+						this.C = this.parameterGrid.C[c];
+						console.log("Training with kp = " + this.kernelpar + " C = " + this.C);
+						
+						// alpha seeding: intialize alpha with optimal values for previous (smaller) C
+						/* (does not help with values of C too different...
+							if ( c == 0 )
+								this.alphaseeding.use = false; 
+							else {
+								this.alphaseeding.use = true;
+								this.alphaseeding.alpha = this.alpha; 
+							}
+						*/
+						this.train(Xtr,Ytr, kc);	// use the same kernel cache for all values of C
+						validationErrors.val[kp * this.parameterGrid.C.length + c] += 1.0 - this.test(Xte,Yte) ;						
+					}
+				}
+			}
+		}
+		console.log("fold " + fold);
+		// last fold:
+		Xtr = get(X, get(perm, range(0, fold * foldsize)), []);
+		Ytr = get(labels, get(perm, range(0, fold * foldsize ) ) ); 
+		Xte = get(X, get(perm, range(fold * foldsize, N)), []);
+		Yte = get(labels, get(perm, range(fold * foldsize, N)) );
+		
+		if ( this.kernel == "linear" ) {
+			// test all values of C 		
+			for ( var c = 0; c < this.parameterGrid.C.length; c++) {
+				this.C = this.parameterGrid.C[c];
+				console.log("training with C = " + this.C); 
+				this.train(Xtr,Ytr);
+				validationErrors[c] += 1.0 - this.test(Xte,Yte) ;
+			}
+		}
+		else {
+			// grid of ( kernelpar, C) values
+	
+			var kc = new kernelCache( Xtr , this.kernel, this.parameterGrid.kernelpar[0] ); 
+
+			for ( var kp = 0; kp < this.parameterGrid.kernelpar.length; kp++) {
+				this.kernelpar = this.parameterGrid.kernelpar[kp];
+				if ( kp > 0 ) {
+					kc.update( this.kernelpar );
+				}
+				for ( var c = 0; c < this.parameterGrid.C.length; c++) {
+					this.C = this.parameterGrid.C[c];
+					console.log("Training with kp = " + this.kernelpar + " C = " + this.C);	
+					// alpha seeding: intialize alpha with optimal values for previous (smaller) C
+					/*
+					if ( c == 0 )
+						this.alphaseeding.use = false; 
+					else {
+						this.alphaseeding.use = true;
+						this.alphaseeding.alpha = this.alpha; 
+					}*/
+				
+					this.train(Xtr,Ytr, kc);	// use the same kernel cache for all values of C
+					validationErrors.val[kp * this.parameterGrid.C.length + c] += 1.0 - this.test(Xte,Yte) ;					
+				}
+			}
+		}		
+	
+		// Compute Kfold errors and find best parameters 
+		var minValidError = Infinity;
+		var bestC;
+		var bestkernelpar;
+		
+		if ( this.kernel == "linear" ) {
+			for ( var c = 0; c < this.parameterGrid.C.length; c++) {
+				validationErrors[c] /= nFolds; 
+				if ( validationErrors[c] < minValidError ) {
+					minValidError = validationErrors[c]; 
+					bestC = this.parameterGrid.C[c];
+				}
+			}
+			this.C = bestC;
+		}
+		else {
+			// grid of ( kernelpar, C) values
+			for ( var kp = 0; kp < this.parameterGrid.kernelpar.length; kp++) {
+				for ( var c = 0; c < this.parameterGrid.C.length; c++) {
+					validationErrors.val[kp * this.parameterGrid.C.length + c] /= nFolds;				
+					if(validationErrors.val[kp * this.parameterGrid.C.length + c] < minValidError ) {
+						minValidError = validationErrors.val[kp * this.parameterGrid.C.length + c]; 
+						bestC = this.parameterGrid.C[c];
+						bestkernelpar = this.parameterGrid.kernelpar[kp];
+					}
+				}
+			}
+			this.C = bestC;	
+			this.kernelpar = bestkernelpar;	
+		}
+		
+		//this.alphaseeding.use = false;
+		
+		// Retrain on all data
+		this.train(X, labels);		
+	}
+	
+	// Restore the dimension-free kernelpar range 
+	if ( this.kernel == "rbf" ) {
+		for ( var kp = 0; kp < this.parameterGrid.kernelpar.length ; kp ++) {
+			this.parameterGrid.kernelpar[kp] = saveKpGrid[kp];
+		}
+	}
+	
+	this.validationError = minValidError; 
+	return {error: minValidError, validationErrors: validationErrors}; 
+}
 MSVM.prototype.train = function (X, labels) {
 	// Training function
 	
@@ -2459,7 +2710,10 @@ MSVM.prototype.train = function (X, labels) {
 	}
 	
 	// create a new kernel cache
-	var kc = new kernelCache( X , this.kernel, this.kernelpar ); 
+	if ( typeof(kc) == "undefined" ) {
+		// create a new kernel cache if it is not provided
+		var kc = new kernelCache( X , this.kernel, this.kernelpar ); 
+	}
 	K = new Array(); // to store kernel rows
 	
 	// Create function that updates the gradient
