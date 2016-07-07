@@ -233,7 +233,7 @@ function windowIsLoaded(win, command, data) {
 // Deal with Worker Output and print results
 function parseWorkerOutput  ( WorkerEvent ) {
 
-	if ( WorkerEvent.data.progress ) {
+	if ( typeof(WorkerEvent.data.progress) != "undefined" ) {
 		showProgress(WorkerEvent.data.progress);
 		return;
 	}
@@ -931,10 +931,10 @@ function showProgress( ratio ) {
 			cssgradient += ",white";
 	}
 	cssgradient += ")";
-	console.log(cssgradient);
+
 	cmdline.style.background = cssgradient;
 	if ( ratio >= 1 ) {
-		settimeout(function () {cmdline.style.background = "white";}, 500);
+		setTimeout(function () {cmdline.style.background = "white";}, 500);
 	}
 }
 </script>

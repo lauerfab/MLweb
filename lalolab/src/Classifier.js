@@ -94,20 +94,125 @@ Classifier.prototype.construct = function ( params ) {
 	// Read this.params and create the required fields for a specific algorithm
 }
 
-Classifier.prototype.tune = function ( X, labels, Xv, labelsv ) {
+Classifier.prototype.tune = function ( X, y, Xv, yv ) {
 	// Main function for tuning an algorithm on a given training set (X,labels) by cross-validation
 	//	or by error minimization on the validation set (Xv, labelsv);
-	
+
 	/*
-		1) apply cross validation to estimate the performance of all sets of parameters
+		1) apply cross validation (or test on (Xv,yv) ) to estimate the performance of all sets of parameters
 			in this.parameterGrid
-			
-			- for each cross validation fold and each parameter set, 
-					create a new model, train it, test it and delete it.
 			
 		2) pick the best set of parameters and train the final model on all data
 			store this model in this.* 
 	*/
+
+	var validationSet = ( typeof(Xv) != "undefined" && typeof(yv) != "undefined" );
+	
+	var n = 0;
+	var parnames = new Array();
+
+	if (typeof(this.parameterGrid) != "undefined" ) {
+		for ( var p in this.parameterGrid ) {
+			parnames[n] = p;
+			n++;
+		}
+	}
+	var validationErrors;
+	var minValidError = Infinity;
+
+	if ( n == 0 ) {
+		// no hyperparameter to tune, so just train and test
+		if ( validationSet ) {
+			this.train(X,y);
+			var stats = 1.0 - this.test(Xv,yv);
+		}
+		else 
+			var stats = 1.0 - this.cv(X,y);
+		minValidError = stats ;
+	}
+	else if( n == 1 ) {
+		// Just one hyperparameter
+		var validationErrors = zeros(this.parameterGrid[parnames[0]].length);
+		var bestpar; 		
+
+		for ( var p =0; p <  this.parameterGrid[parnames[0]].length; p++ ) {
+			this[parnames[0]] = this.parameterGrid[parnames[0]][p];
+			
+			console.log("Trying " + parnames[0] + " = " + this[parnames[0]] + ", " + parnames[1] + " = " + this[parnames[1]]);
+			if ( validationSet ) {
+				// use validation set
+				this.train(X,y);
+				var stats = 1.0 - this.test(Xv,yv);
+			}
+			else {
+				// do cross validation
+				var stats = 1.0 - this.cv(X,y);
+			}
+			validationErrors[p] = stats;
+			if ( stats < minValidError ) {
+				minValidError = stats;
+				bestpar = this[parnames[0]];
+				if ( minValidError < 1e-4 )
+					break;					
+			}
+		}
+		
+		// retrain with all data
+		this[parnames[0]] = bestpar; 
+		if ( validationSet ) 
+			this.train( mat([X,Xv], true),reshape( mat([y,yv],true), y.length+yv.length, 1));
+		else
+			this.train(X,y);
+	}
+	else if ( n == 2 ) {
+		// 2 hyperparameters
+		validationErrors = zeros(this.parameterGrid[parnames[0]].length, this.parameterGrid[parnames[1]].length);
+		var bestpar = new Array(2); 		
+
+		for ( var p0 =0; p0 <  this.parameterGrid[parnames[0]].length; p0++ ) {
+			this[parnames[0]] = this.parameterGrid[parnames[0]][p0];
+
+			for ( var p1 =0; p1 <  this.parameterGrid[parnames[1]].length; p1++ ) {
+				this[parnames[1]] = this.parameterGrid[parnames[1]][p1];
+			
+				console.log("Trying " + parnames[0] + " = " + this[parnames[0]] + ", " + parnames[1] + " = " + this[parnames[1]]);
+			
+				if ( validationSet ) {
+					// use validation set
+					this.train(X,y);
+					var stats = 1.0 - this.test(Xv,yv);
+				}
+				else {
+					// do cross validation
+					var stats = 1.0 - this.cv(X,y);
+				}
+				validationErrors.val[p0*this.parameterGrid[parnames[1]].length + p1] = stats;
+				if ( stats < minValidError ) {
+					minValidError = stats ;
+					bestpar[0] = this[parnames[0]];
+					bestpar[1] = this[parnames[1]];
+					if ( minValidError < 1e-4 )
+						break;					
+
+				}
+				if ( minValidError < 1e-4 )
+					break;
+			}
+		}
+		
+		// retrain with all data
+		this[parnames[0]] = bestpar[0]; 
+		this[parnames[1]] = bestpar[1]; 		
+		if( validationSet )
+			this.train( mat([X,Xv], true),reshape( mat([y,yv],true), y.length+yv.length, 1));
+		else
+			this.train(X,y);
+	}
+	else {
+		// too many hyperparameters... 
+		error("Too many hyperparameters to tune.");
+	}	
+	return {error: minValidError,  validationErrors: validationErrors};
 }
 
 Classifier.prototype.train = function (X, labels) {
@@ -1193,8 +1298,11 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 		var saveKpGrid = zeros(this.parameterGrid.kernelpar.length);
 		for ( var kp = 0; kp < this.parameterGrid.kernelpar.length ; kp ++) {
 			saveKpGrid[kp] = this.parameterGrid.kernelpar[kp];
-			this.parameterGrid.kernelpar[kp] *= Math.sqrt( X.n ); 
+			if ( typeof(this.kernelpar) == "undefined")
+				this.parameterGrid.kernelpar[kp] *= Math.sqrt( X.n ); 			
 		}
+		if ( typeof(this.kernelpar) != "undefined")
+			this.parameterGrid.kernelpar = mul(this.kernelpar, range(1.4,0.7,-0.1)); 
 	}
 	
 	
@@ -1291,7 +1399,7 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 				// test all values of C 		
 				for ( var c = 0; c < this.parameterGrid.C.length; c++) {
 					this.C = this.parameterGrid.C[c];
-					console.log("training with C = " + this.C + "on " , tridx, Xtr, Ytr);
+					console.log("training with C = " + this.C); // + " on " , tridx, Xtr, Ytr);
 					this.train(Xtr,Ytr);
 					validationErrors[c] += 1.0 - this.test(Xte,Yte) ;					
 				}
@@ -1336,6 +1444,7 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 			// test all values of C 		
 			for ( var c = 0; c < this.parameterGrid.C.length; c++) {
 				this.C = this.parameterGrid.C[c];
+				console.log("training with C = " + this.C); 
 				this.train(Xtr,Ytr);
 				validationErrors[c] += 1.0 - this.test(Xte,Yte) ;
 			}
@@ -2238,20 +2347,20 @@ MSVM.prototype.construct = function (params) {
 	// Parameter grid for automatic tuning:
 	switch (this.kernel) {
 		case "linear":
-			this.parameterGrid = { "C" : [0.001, 0.01, 0.1, 1, 5, 10, 100] };
+			this.parameterGrid = { "C" : [0.1, 1, 5, 10, 50] };
 			break;
 		case "gaussian":
 		case "Gaussian":
 		case "RBF":
 		case "rbf": 
-			this.parameterGrid = { "kernelpar": [0.1,0.2,0.5,1,2,5] , "C" : [0.001, 0.01, 0.1, 1, 5, 10, 100] };
+			this.parameterGrid = { "kernelpar": [0.1,0.2,0.5,1,2,5] , "C" : [ 0.1, 1, 5, 10, 50] };
 			break;
 			
 		case "poly":
-			this.parameterGrid = { "kernelpar": [3,5,7,9] , "C" : [0.001, 0.01, 0.1, 1, 5, 10, 100]  };
+			this.parameterGrid = { "kernelpar": [3,5,7,9] , "C" : [ 0.1, 1, 5, 10, 50] };
 			break;
 		case "polyh":
-			this.parameterGrid = { "kernelpar": [3,5,7,9] , "C" : [0.001, 0.01, 0.1, 1, 5, 10, 100] };
+			this.parameterGrid = { "kernelpar": [3,5,7,9] , "C" : [ 0.1, 1, 5, 10, 50] };
 			break;
 		default:
 			this.parameterGrid = undefined; 
@@ -2424,6 +2533,8 @@ MSVM.prototype.train = function (X, labels) {
 	info.primal = Infinity;
 	var ratio = 0;
 	var iter = 0;
+	var ratio_10k = -1; 
+	var ratio_stable_10k = false;
 	
 	var infoStep ;
 	if ( this.MSVMtype == "CS")
@@ -2549,13 +2660,17 @@ MSVM.prototype.train = function (X, labels) {
 			else
 				ratio = 0;
 				
+			if ( iter % 10000 == 0 ) {
+				ratio_stable_10k = (Math.abs(ratio - ratio_10k) < 1e-3 );
+				ratio_10k = ratio;
+			}
 			//console.log("iter " + iter + " Remp=" + info.trainingError.toFixed(4) + " ratio=" + info.dual.toFixed(4) + "/" + info.primal.toFixed(4) + "=" + (100*ratio).toFixed(4) + " %");
 			console.log("iter " + iter + ": time=" + toc() + " Remp=" + info.trainingError.toFixed(4) + " ratio= " + (100*ratio).toFixed(4) + " %");
 		}
-			
+		
 		
 		iter++;
-	} while (ratio < this.optimAccuracy && iter < this.maxIter ); 
+	} while (ratio < this.optimAccuracy && iter < this.maxIter && !ratio_stable_10k ); 
 	
 	// Set model parameters
 	this.alpha = zeros(Q,N);
@@ -2648,8 +2763,8 @@ function MSVM_CS_workingset_selection (chunk_size, N, Q, alpha, gradient) {
 			chunk.push(i);
 		}
 	}
-	if ( psi[chunk[0] ] < 0.01 ) 
-		console.log("psimax: " + psi[chunk[0]]);
+	/*if ( psi[chunk[0] ] < 0.01 ) 
+		console.log("psimax: " + psi[chunk[0]]);*/
 	return chunk;
 }
 
@@ -3364,7 +3479,7 @@ KNN.prototype.construct = function (params) {
 	}		
 
 	// Parameter grid for automatic tuning:
-	this.parameterGrid = { "K" : [1,3,5,7,10,15] };		
+	this.parameterGrid = { "K" : range(1,16) };		
 }
 
 KNN.prototype.train = function ( X, labels ) {
@@ -3902,6 +4017,7 @@ KNN.prototype.tune = function ( X, labels, Xv, labelsv ) {
 		// set best K in the classifier
 		this.K = bestK;
 		
+		notifyProgress( 1 );	
 		return {K: bestK, error: minLOOerror, LOOerrors: LOO, Kvalues: range(1,K) };
 
 	}
