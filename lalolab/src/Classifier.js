@@ -138,7 +138,7 @@ Classifier.prototype.tune = function ( X, y, Xv, yv ) {
 		for ( var p =0; p <  this.parameterGrid[parnames[0]].length; p++ ) {
 			this[parnames[0]] = this.parameterGrid[parnames[0]][p];
 			
-			console.log("Trying " + parnames[0] + " = " + this[parnames[0]] + ", " + parnames[1] + " = " + this[parnames[1]]);
+			console.log("Trying " + parnames[0] + " = " + this[parnames[0]] );
 			if ( validationSet ) {
 				// use validation set
 				this.train(X,y);
@@ -1859,10 +1859,26 @@ SVM.prototype.trainBinary = function ( X, y, kc ) {
 	}
 	
 	/* Find support vectors	*/
-	var nz = isGreater(alpha, 1e-6);
+	var tola = 1e-6;
+	var nz = isGreater(alpha, tola);
 	var SVindexes = find(nz); // list of indexes of SVs	
+	while ( SVindexes.length < 2  && tola > 2*EPS) {
+		tola /= 10;
+		nz = isGreater(alpha, tola);
+		SVindexes = find(nz); // list of indexes of SVs		
+	}
+	
 	var SVlabels = get(y, SVindexes);
 	var SV = get(X,SVindexes, []) ;
+	switch ( type ( SV ) ) {
+		case "spvector":
+			SV = sparse(transpose(SV)); // matrix with 1 row
+			break;
+		case "vector": 
+			SV = transpose(SV);
+			break;
+	}
+
 	alpha = entrywisemul(nz, alpha); // zeroing small alpha_i	
 	var dim_input = 1;
 	if ( type(X) != "vector")
@@ -2319,7 +2335,7 @@ function MSVM ( params) {
 MSVM.prototype.construct = function (params) {
 	
 	// Default parameters:
-	this.MSVMtype = "WW";
+	this.MSVMtype = "CS";
 	this.kernel = "linear";
 	this.kernelpar = undefined;
 	

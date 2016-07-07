@@ -12,14 +12,21 @@ function isInteger(x) {
 	return (Math.floor(x) == x ) ;
 }
 
-function tic( ) {
-	TICTOCstartTime = new Date();
+function tic( T ) {
+	if ( typeof(TICTOCstartTime) == "undefined" )
+		TICTOCstartTime = new Array();
+	if (typeof(T) == "undefined")
+		var T = 0;
+	TICTOCstartTime[T] = new Date();
 }
-function toc () {
-	if ( TICTOCstartTime ) {
+function toc ( T ) {
+	if ( typeof(T) == "undefined" )
+		var T = 0;
+	if ( typeof(TICTOCstartTime) != "undefined" && typeof(TICTOCstartTime[T]) != "undefined" ) {		
 		// Computing time
+		var startTime = TICTOCstartTime[T];
 		var endTime = new Date();
-		var time = ( endTime - TICTOCstartTime) / 1000;  // in seconds
+		var time = ( endTime - startTime) / 1000;  // in seconds
 		return time;
 	}
 	else
