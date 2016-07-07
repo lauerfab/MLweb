@@ -1165,7 +1165,7 @@ SVM.prototype.construct = function (params) {
 		case "RBF":
 		case "rbf": 
 			// use multiples powers of 1/sqrt(2) for sigma => efficient kernel updates by squaring
-			this.parameterGrid = { "kernelpar": pow(1/Math.sqrt(2), range(0,10)), "C" : [ 0.1, 1, 5, 10, 50] };
+			this.parameterGrid = { "kernelpar": pow(1/Math.sqrt(2), range(-1,9)), "C" : [ 0.1, 1, 5, 10, 50] };
 			break;
 			
 		case "poly":
@@ -1308,7 +1308,7 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 					}
 					for ( var c = 0; c < this.parameterGrid.C.length; c++) {
 						this.C = this.parameterGrid.C[c];
-						console.log("Training with kp " + this.kernelpar + " C = " + this.C);
+						console.log("Training with kp = " + this.kernelpar + " C = " + this.C);
 						
 						// alpha seeding: intialize alpha with optimal values for previous (smaller) C
 						/* (does not help with values of C too different...
@@ -1320,11 +1320,12 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 							}
 						*/
 						this.train(Xtr,Ytr, kc);	// use the same kernel cache for all values of C
-						validationErrors.val[kp * this.parameterGrid.C.length + c] += 1.0 - this.test(Xte,Yte) ;
+						validationErrors.val[kp * this.parameterGrid.C.length + c] += 1.0 - this.test(Xte,Yte) ;						
 					}
 				}
 			}
 		}
+		console.log("fold" + fold);
 		// last fold:
 		Xtr = get(X, get(perm, range(0, fold * foldsize)), []);
 		Ytr = get(labels, get(perm, range(0, fold * foldsize ) ) ); 
@@ -1351,7 +1352,7 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 				}
 				for ( var c = 0; c < this.parameterGrid.C.length; c++) {
 					this.C = this.parameterGrid.C[c];
-					
+					console.log("Training with kp = " + this.kernelpar + " C = " + this.C);	
 					// alpha seeding: intialize alpha with optimal values for previous (smaller) C
 					/*
 					if ( c == 0 )
@@ -1362,7 +1363,7 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 					}*/
 				
 					this.train(Xtr,Ytr, kc);	// use the same kernel cache for all values of C
-					validationErrors.val[kp * this.parameterGrid.C.length + c] += 1.0 - this.test(Xte,Yte) ;
+					validationErrors.val[kp * this.parameterGrid.C.length + c] += 1.0 - this.test(Xte,Yte) ;					
 				}
 			}
 		}		
@@ -1402,6 +1403,13 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 		
 		// Retrain on all data
 		this.train(X, labels);		
+	}
+	
+	// Restore the dimension-free kernelpar range 
+	if ( this.kernel == "rbf" ) {
+		for ( var kp = 0; kp < this.parameterGrid.kernelpar.length ; kp ++) {
+			this.parameterGrid.kernelpar[kp] = saveKpGrid[kp];
+		}
 	}
 	
 	this.validationError = minValidError; 

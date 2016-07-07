@@ -749,6 +749,8 @@ kernelCache.prototype.update = function( kernelpar ) {
 	}
 	
 	this.kernelpar = kernelpar;
+	this.kernelFunc = kernelFunction(this.kerneltype, kernelpar, this.inputtype); // X transformed to matrix in any case (Xi = (sp)vector)
+	
 }
 kernelCache.prototype.updateRow = function( i ) {
 	// update the kernel row in the ith row of the cache
@@ -769,9 +771,13 @@ kernelCache.prototype.updateRow = function( i ) {
 			default:
 				return ;
 		}
+		var pr = Math.round(power);
+		if ( Math.abs(pr - power) < 1e-12 ) 
+			power = pr;
+			
 		var j;
 		var Krow = this.K.row(i);
-		if ( Math.abs(power - 2) < 1e-10 ) {
+		if ( power == 2 ) {
 			for ( j = 0; j < this.rowlength ; j++) 
 				Krow[j] *= Krow[j] ;
 		}
