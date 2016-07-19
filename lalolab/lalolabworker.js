@@ -858,6 +858,13 @@ function image(X, title) {
 	
 }
 function colormap(x, y, f, title) {
+	// if f is a member function of an object,
+	// the object has not been passed to us and this.* in f is undefined... 
+	// => use "f" instead:
+	if ( typeof(f) == "string" ) {
+		var fstr = f;
+		f = function (u) {return eval(fstr + "([" + u[0] + "," + u[1] + "])");};
+	}
 	
 	var style;
 	var m = x.length;	
@@ -876,10 +883,11 @@ function colormap(x, y, f, title) {
 	var minf = min(F); 
 	var maxf = max(F); 
 	var scale = maxf - minf;
+	var meanval = (maxf + minf)/2;
 	 
 	for ( i=0; i < m; i++) {
 		for ( j=0; j < n; j++) {	
-			var v = F.val[i*n+j];
+			var v = F.val[i*n+j] - meanval;
 			if ( isZero(v) )
 				color = [255,255,255,0];
 			else if ( v > 0 ) 
@@ -887,7 +895,7 @@ function colormap(x, y, f, title) {
 			else
 				color = [0,0,255, -2*v/scale] ; 
 
-			data[k] = [i/m, j/n, color];
+			data[k] = [i/m, j/n, color, x[i], y[j], F.val[i*n+j] ];
 			k++;
 		}
 	}

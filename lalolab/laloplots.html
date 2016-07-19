@@ -547,19 +547,19 @@ function colormap ( cmapdata ) {
 	else
 		document.title = "LALOLab image plot";
 
-	if ( cmapdata.style[1] > width ) {
-		width = cmapdata.style[1]; 
+	if ( cmapdata.style[0] > width ) {
+		width = cmapdata.style[0]; 
 		plotlegend.style.left = (width+60) +"px";
 	}
-	if ( cmapdata.style[0] > height )
-	 	height = cmapdata.style[0];
+	if ( cmapdata.style[1] > height )
+	 	height = cmapdata.style[1];
 		
-	pixelWidth = width / cmapdata.style[1];
-	pixelHeight = height / cmapdata.style[0];
+	pixelWidth = width / cmapdata.style[0];
+	pixelHeight = height / cmapdata.style[1];
 	
 	
 	
-	outputplots.innerHTML += "<a onmousemove='mouseimageposition(event);'><canvas id='" +plotid + "'  width='" + width + "' height='"+ height + "' class='imageplots'></canvas></a>"; 
+	outputplots.innerHTML += "<a onmousemove='mousecolormapposition(event);'><canvas id='" +plotid + "'  width='" + width + "' height='"+ height + "' class='imageplots'></canvas></a>"; 
 
 	var x;
 	var y;
@@ -570,8 +570,8 @@ function colormap ( cmapdata ) {
 		var ctx = plotcanvas.getContext("2d");
 
 		for ( i=0; i < cmapdata.data.length ; i++) {
-			x = plotcanvas.width * cmapdata.data[i][1];
-			y =  plotcanvas.height * ( 1 - cmapdata.data[i][0] );
+			x = plotcanvas.width * cmapdata.data[i][0];
+			y =  plotcanvas.height * ( 1 - cmapdata.data[i][1] ) - pixelHeight;
 			color = cmapdata.data[i][2];
 		
 			ctx.fillStyle = "rgba(" + color[0] + "," + color[1] + "," + color[2] + "," + color[3] + ")";
@@ -748,6 +748,26 @@ function mouseimageposition( e ) {
 		else
 			var val = imageinfo.data[i*n + j][2][3]*(maxX - minX)/2;
 		lblposition.innerHTML = "Matrix[ " + i + " ][ " + j + " ] = " + val.toFixed(3);
+	}
+}
+function mousecolormapposition( e ) {
+
+	var rect = plotcanvas.getBoundingClientRect();
+
+	var xmouse = e.clientX - rect.left;	// mouse coordinates relative to plot
+	var ymouse = e.clientY - rect.top;
+
+	var n = imageinfo.style[1];
+	var minX = imageinfo.style[2];	
+	var maxX = imageinfo.style[3];	
+	var j = Math.floor((plotcanvas.height - ymouse) / pixelHeight);
+	var i = Math.floor(xmouse / pixelWidth );
+	if ( j < n ) {
+		if ( imageinfo.data[i*n + j][2].length == 3)
+			var val = imageinfo.data[i*n + j][2][0]*(maxX - minX) + minX;
+		else
+			var val = imageinfo.data[i*n + j][2][3]*(maxX - minX)/2;
+		lblposition.innerHTML = "x = " + imageinfo.data[i*n + j][3].toFixed(3) + ", y = " +  imageinfo.data[i*n + j][4].toFixed(3) + ", f(x,y) = " + imageinfo.data[i*n + j][5].toFixed(3);
 	}
 }
 
