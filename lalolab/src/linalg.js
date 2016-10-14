@@ -4066,7 +4066,7 @@ function normp( A , p, sumalongdimension ) {
 
 function normnuc( A ) {
 	// nuclear norm
-	switch( type(A) ) {
+	switch( type(A) ) {
 	case "matrix":
 		return sumVector(svd(A)); 
 		break;
@@ -4788,7 +4788,7 @@ function qroriginal( A, compute_Q ) {
 	// A with m rows and n cols; m >= n
 	
 	// test with A = [[12,-51,4],[6,167,-68],[-4,24,-41]]
-	// then R = [ [14 -21 -14 ], [ -3, 175, −70], [2, -0.75, 35]]
+	// then R = [ [14 -21 -14 ], [ -3, 175, -70], [2, -0.75, 35]]
 	
 	var m = A.length;
 	var n = A.n;

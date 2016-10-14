@@ -1647,7 +1647,7 @@ SVM.prototype.trainBinary = function ( X, y, kc ) {
 			y_neg_idx.push(i);
 	}
 	
-	// Function computing Q[i,:] = y_i * y .* K[i,:]
+	// Function computing Q[i,:] = y_i * y .* K[i,:]
 	var computeQ_row = function ( i ) {
 		var Qi = kc.get_row( i );
 		var k;

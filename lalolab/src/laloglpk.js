@@ -682,3 +682,55 @@ function armijodir (f, xc, fc, g, d ) {
 	}
 	return {"lambda": lambda, "x": xt, "obj": ft};
 }
+
+//////////////////////////////////////////
+//// LP with Simplex
+////////////////////
+//function lplex(cost, Aeq, beq, beta) {
+//	var c = vectorCopy(cost);
+//	var A = matrixCopy(Aeq);
+//	var b = vectorCopy(beq);
+//	var x = vectorCopy(x0);
+//	
+//	// beta =  list of basic variable indexes
+//	var m = A.m;
+//	var n = A.n;
+//	
+//	var optimal = false;
+//	var unbounded = false;
+//	var eta = new Array; 
+//	var piv = new Array; 
+//	var i,j;	
+//	while ( !optimal && !unbounded ) {
+//		var s = argmin(c);
+//		if ( c[s] >= 0 ) {
+//			optimal = true;
+//			break;
+//		}
+
+//		var r = 0;
+//		for ( i=1; i < m ; i++) {
+//			if ( A.val[i*n+s] > 0 && b[i] / A.val[i*n+s] < minr ) {
+//				minr = b[i] / A.val[i*n+s] ;
+//				r = i;
+//			}
+//		}
+//		piv.push(s);
+//		eta.push( new Float64Array(m) ); 
+//		
+//		eta = entrywisediv(getCols (A, [s] ) , - A.val[r*n + s] ;
+//		eta[r] = 1/A.val[r*n+s];
+//		
+//		b = saxpy(b[s], eta, b); 
+//		
+//		var Ar = getRows(A, [r]);
+//		for ( i=0; i < m; i++) {
+//			for( j=0; j < n; j++) {
+//				A.val[i*n+j] += Ar[j] * eta[i]; 				
+//			}
+//		}
+//		
+//		c = saxpy ( c); 
+//	}
+//	
+//}

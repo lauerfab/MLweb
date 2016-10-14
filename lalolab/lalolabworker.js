@@ -1153,7 +1153,11 @@ function load_data_to_data ( datastring ) {
 	var rows = datastring.split("\n");
 	for ( i=0; i< rows.length - 1; i++) {
 		if ( rows[i] != "" ) {
-			row = rows[i].replace(/,/g," ").replace(/ +/g,",");
+			var p= 0;
+			while ( p < rows[i].length && rows[i][p] == " " )
+				p++;
+						
+			row = rows[i].substr(p).replace(/,/g," ").replace(/ +/g,",");
 			cmd += "[" + row + "] ,";
 		}
 	}
