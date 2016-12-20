@@ -2643,7 +2643,7 @@ MSVM.prototype.train = function (X, labels) {
 	
 	// Check multi-class case
 	if ( this.labels.length <= 2 ) {		
-		return "The data set should contain more than 2 classes for M-SVMs."; 
+		error( "The data set should contain more than 2 classes for M-SVMs." ); 
 	}
 	
 	const C = this.C;
