@@ -405,13 +405,18 @@ function sparse( A , rowmajor ) {
  * @param{number}
  * @return{spMatrix}
  */
-function speye(n) {
-	if ( n == 1)
+function speye(m,n) {
+	if ( typeof(n) == "undefined" ) 
+		var n = m;
+	if ( m == 1 && n == 1)
 		return 1;
-	var val = ones(n);
-	var rows = range(n+1);
-	var cols = rows.slice(0,n);
-	return new spMatrix(n,n,val,cols,rows);
+	
+	var e = (m<n)?m:n;
+	
+	var val = ones(e);
+	var rows = range(e+1);
+	var cols = rows.slice(0,e);
+	return new spMatrix(m,n,val,cols,rows);
 }
 /**
  * @param{Float64Array}

@@ -231,15 +231,18 @@ function zeros(rows, cols) {
 	}	
 }
 
-function eye(n) {
-	if ( n == 1)
+function eye(m,n) {
+	if ( typeof(n) == "undefined") 
+		var n = m;
+	if ( m == 1 && n == 1)
 		return 1;
-
-	var I = zeros(n,n);
-	const mn = n*n;
-	for ( var i = 0; i< mn;i += n+1) {
-		I.val[i] = 1;
+		
+	var I = zeros(m,n);
+	const e = (m<n)?m:n;
+	for ( var i = 0; i< e; i ++) {
+		I.val[i*(n+1)] = 1;
 	}
+	
 	return I;
 }
 
@@ -4835,7 +4838,7 @@ function qroriginal( A, compute_Q ) {
 		if ( typeof( compute_Q ) == "number") {
 			// compute only first r columns of Q
 			r = compute_Q; 
-			Q = get( eye(m), [], range(r) );
+			Q = eye(m,r);			
 		}
 		else {
 			Q = eye(m);

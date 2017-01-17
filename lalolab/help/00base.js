@@ -28,7 +28,7 @@ HELPcontent["size"] = ["Basics", "Size of a matrix/vector","s = size(A)\nm = siz
 HELPcontent["type"] = ["Basics", "Type of an object","tx = type(x)","Return a string indicating the type of an object: \"number\", \"vector\", \"matrix\", \"spvector\", \"spmatrix\", \"string\", \"object\" or \"function\".<br><br>Complex types corresponding for instance to machine learning models or statistical distributions can also take the form of a general class followed by a subclass, e.g., \"Classifier:SVM\" or \"Distribution:Gaussian\"."];
 HELPcontent["zeros"] = ["Basics", "Zero matrix/vector","v = zeros(n)\nA = zeros(m,n)","Generate an n-dimensional vector v or m-by-n matrix A filled with zeros."];
 HELPcontent["ones"] = ["Basics", "Matrix/vector of 1","v = ones(n)\nA = ones(m,n)","Generate an n-dimensional vector v or an m-by-n matrix A filled with ones."];
-HELPcontent["eye"] = ["Basics", "Identity matrix","I = eye(n)\n","Return the n-by-n identity matrix."];
+HELPcontent["eye"] = ["Basics", "Identity matrix","I = eye(n)\nI = eye(m, n)","Return the n-by-n identity matrix or the top-left m-by-n submatrix of the N-by-N identity matrix with N = max(m,n)."];
 HELPcontent["mat"] = ["Basics", "Matrix concatenation","C = [A, B, ...]\n<span style='font-weight:normal;'>{ C = mat([A, B, ...]) } </span>\nC = [A; B; ...]\n<span style='font-weight:normal;'>{ C = mat([A, B, ...], true) } </span>\nv = mat( array )\nM = mat( array2D )","Concatenate matrices and vectors column-wise if separated with commas or row-wise if separated with semicolons (or if calling mat() with the second set to true). In the row-wise case, vectors are automatically transposed.<br>If array is a javascript Array of numbers, mat( array ) returns a column vector with the same entries. If array2D is a javascript Array of Arrays, mat( array2D ) returns a matrix M with M[i,j] = array2D[i][j].","x1 = [1,2,3]\nx2 = [4,5,6]\nX = [x1; x2]"];
 HELPcontent["diag"] = ["Basics", "Matrix diagonal","d = diag( A )\nD = diag( v )","Return the diagonal d of a matrix A or a diagonal matrix D with entries from a vector v."];
 HELPcontent["triu"] = ["Basics", "Upper triangular part","U = triu( A )","Extract the upper triangular part of a matrix."];
@@ -43,7 +43,7 @@ HELPcontent["supp"] = ["Basics", "Support of a vector","indexes = supp( x )","Re
 // Sparse
 HELPcontent["sparse"] = ["Basics", "Sparse matrix/vector","A = sparse( X )\nA = sparse( X, rowmajor )\nb = sparse( x )","Return a sparse matrix or vector of \"spmatrix\" or \"spvector\" type such that full( sparse( X ) ) = X. By default sparse matrices are stored in row major (or row compressed) format, use sparse ( X, false ) for column major format.  "];
 HELPcontent["full"] = ["Basics", "Full matrix/vector","X = full( A )\nx = full( b )","Return a full matrix or vector of \"matrix\" or \"vector\" type such that sparse( full( A ) ) = A. "];
-HELPcontent["speye"] = ["Basics", "Sparse identity matrix","A = speye( n )","Return the identify matrix of size n by n in sparse format ( \"spmatrix\" ). "];
+HELPcontent["speye"] = ["Basics", "Sparse identity matrix","A = speye( n )\nA = speye(m, n)","Return the identify matrix of size n by n in sparse format ( \"spmatrix\" ) or the top-left m-by-n submatrix of the N-by-N identity matrix with N = max(m,n). "];
 HELPcontent["spdiag"] = ["Basics", "Sparse diagonal matrix","A = spdiag( a )","Return a sparse diagonal matrix with diagonal entries taken from the vector a. "];
 
 
