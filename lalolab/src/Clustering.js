@@ -34,7 +34,7 @@ function spectralclustering ( X , n, sigma ) {
 	
 	// normalize  as in A. Ng et al., 2002:
 	var D = sum(A, 2); 
-	var D2 = diag(entrywisediv(1, sqrt(D))); // diag(D)^(-1/2);    
+	var D2 = spdiag(entrywisediv(1, sqrt(D))); // diag(D)^(-1/2);    
 	var Ap = mul(D2, mul(A, D2));
 
 	/*
