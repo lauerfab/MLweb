@@ -4631,74 +4631,46 @@ function inv( M ) {
 	return B;
 }
 
-
-function chol( A ) {	
-	// Compute the Cholesky factorization A = G G^T with G lower triangular 
+function chol( A ) {
+	// Compute the Cholesky factorization A = L L^T with L lower triangular 
 	// for a positive definite and symmetric A
-	// returns G
+	// returns L or undefined if A is not positive definite
 	const n = A.m;
 	if ( A.n != n) {
 		error("Cannot compute the cholesky factorization: the matrix is not square.");
 		return undefined; 
 	}
-
-	var G = matrixCopy(A);
-	
-	var j;
-	var i;
-	var smallG;
-	var Gj;
-	var Gj0;
-	
-	for ( j = 0; j < n; j++) {		
-		if ( j == 0 ) {
-			var _G0 = 1.0 / Math.sqrt(G.val[0]);
-			for ( i=0; i < n; i++)
-				G.val[i*n] *= _G0;				
+	const n2= n*n;
+	const Aval = A.val;
+	var L = new Float64Array(n2);
+		
+	var i,j;
+	// first column = A(:,0) / sqrt(L(0,0)
+	var sqrtLjj = Math.sqrt(A.val[0]);
+	for ( i=0; i < n2 ; i+=n) { 	// i = i*n = ptr to row i
+		L[i] = Aval[i] / sqrtLjj;
+	}
+	// other colums 
+	j = 1;
+	var jn = n;
+	while ( j < n && !isNaN(sqrtLjj)) {				
+		for ( i = jn; i < n2; i+=n ) {	// i = i*n
+			var Lij = Aval[i+j];
+			for ( var k=0; k < j; k++) {
+				Lij -= L[jn + k] * L[i + k]; 
+			}
+			if (i == jn)
+				sqrtLjj = Math.sqrt(Lij);
 				
+			L[i +j] = Lij / sqrtLjj;
 		}
-		else if ( j == 1 ) {
-			if ( n > 2 ) {
-				smallG = get ( G, range(j,n), 0 );
-				Gj =  subVectors ( get(G, range(j,n), j) , mulScalarVector(smallG[0], smallG)  ) ;	
-				Gj0 = Gj[0]; 			
-			}
-			else {
-				smallG = G.val[n]; 
-				Gj = G.val[n+n-1] - smallG * smallG; 
-				Gj0 = Gj;
-			}
-			
-			if ( Gj0 < EPS ) {
-				return undefined;
-			}
-			set ( G, range(j,n), j , mul( 1.0/Math.sqrt(Gj0 ) , Gj) );	
-		}
-		else if (j == n-1) {
-			smallG = G.row(n-1).subarray(0,j) ; // row subvector
-			Gj = G.val[j*n + j] - dot(smallG, smallG );
-			if ( Gj < EPS ) {
-				return undefined;
-			}
-			G.val[j*n + j] = Math.sqrt(Gj);
-		}
-		else {
-			smallG = get ( G, range(j,n), range(0,j) );
-			Gj =  subVectors ( get(G, range(j,n), j) , mulMatrixVector(smallG, smallG.row(0) ) ) ;		
-			Gj0 = Gj[0];
-			if ( Gj0 < EPS ) {
-				return undefined; 
-			}
-			set ( G, range(j,n), j , mulScalarVector( 1.0/Math.sqrt(Gj0 ) , Gj) );
-		}
+		j++;
+		jn += n;
 	}
-	
-	// Make G lower triangular by filling uppper part with 0: 
-	for ( j=0; j < n-1; j++) {
-		for (var k=j+1; k < n ; k++)
-			G.val[j*n + k] = 0;
-	}
-	return G;
+	if ( isNaN(sqrtLjj) ) 
+		return undefined; // not positive definite
+	else
+		return new Matrix(n,n,L,true);
 }
 
 function ldlsymmetricpivoting ( Aorig ) {
