@@ -5206,7 +5206,7 @@ function chol( A ) {
 		
 	var i,j;
 	// first column = A(:,0) / sqrt(L(0,0)
-	var sqrtLjj = Math.sqrt(A.val[0]);
+	var sqrtLjj = Math.sqrt(Aval[0]);
 	for ( i=0; i < n2 ; i+=n) { 	// i = i*n = ptr to row i
 		L[i] = Aval[i] / sqrtLjj;
 	}
