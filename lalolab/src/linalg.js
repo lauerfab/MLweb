@@ -729,6 +729,23 @@ function set ( A , rowsrange, colsrange, B) {
 		}
 		return B;		
 	}
+	else if ( typeA == "ComplexVector" ) {
+		B = colsrange;
+		if ( typerows == "number" ) {
+			A.set(rowsrange, B);
+			return B;
+		}
+		else if ( rowsrange.length == 0 ) 
+			rowsrange = range(A.length);
+				
+		if ( size(B,1) == 1 ) {
+			A.setVectorScalar (rowsrange, B);
+		}
+		else {
+			A.setVectorVector (rowsrange, B);
+		}
+		return B;
+	}
 }
 		
 function setVectorScalar(A, rowsrange, B) {
@@ -1289,6 +1306,9 @@ function mul(a,b) {
 		case "number":
 			return mulScalarVector(b,a);
 			break;
+		case "Complex":			
+			return mulComplexVector(b,a);
+			break;
 		case "vector":
 			if ( a.length != b.length ) {
 				error("Error in mul(a,b) (dot product): a.length = " + a.length + " != " + b.length + " = b.length.");
@@ -1303,6 +1323,13 @@ function mul(a,b) {
 			}	
 			return dotspVectorVector(b,a);
 			break;
+		case "ComplexVector":
+			if ( a.length != b.length ) {
+				error("Error in mul(a,b) (dot product): a.length = " + a.length + " != " + b.length + " = b.length.");
+				return undefined; 
+			}	
+			return dotComplexVectorVector(b,a);
+			break;		
 		case "matrix":
 			if ( b.m == 1) 
 				return outerprodVectors(a , b.val );
@@ -1314,6 +1341,14 @@ function mul(a,b) {
 		case "spmatrix":
 			if ( b.m == 1) 
 				return outerprodVectors(a , fullMatrix(b).val );
+			else {
+				error("Inconsistent dimensions in mul(a,B): size(a) = [" + sa[0] + "," + sa[1] + "], size(B) = [" + sb[0] + "," + sb[1] + "]");
+				return undefined;
+			}
+			break;
+		case "ComplexMatrix":
+			if ( b.m == 1) 
+				return transpose(outerprodComplexVectorVector(new ComplexVector(b.re,b.im,true), a , b.val ));
 			else {
 				error("Inconsistent dimensions in mul(a,B): size(a) = [" + sa[0] + "," + sa[1] + "], size(B) = [" + sb[0] + "," + sb[1] + "]");
 				return undefined;
@@ -1364,10 +1399,65 @@ function mul(a,b) {
 			break;
 		}
 		break;
+	case "ComplexVector":
+		switch( type(b) ) {
+		case "number":
+			return mulScalarComplexVector(b,a);
+			break;
+		case "Complex":
+			return mulComplexComplexVector(b,a);
+			break;
+		case "vector":
+			if ( a.length != b.length ) {
+				error("Error in mul(a,b) (dot product): a.length = " + a.length + " != " + b.length + " = b.length.");
+				return undefined; 
+			}	
+			return dotComplexVectorVector(a,b);
+			break;
+		case "spvector":
+			if ( a.length != b.length ) {
+				error("Error in mul(a,b) (dot product): a.length = " + a.length + " != " + b.length + " = b.length.");
+				return undefined; 
+			}	
+			return dotComplexVectorspVector(a,b);
+			break;
+		case "matrix":
+			if ( b.m == 1) 
+				return outerprodComplexVectorVector(a , b.val );
+			else {
+				error("Inconsistent dimensions in mul(a,B): size(a) = [" + sa[0] + "," + sa[1] + "], size(B) = [" + sb[0] + "," + sb[1] + "]");
+				return undefined;
+			}
+			break;
+		case "spmatrix":
+			if ( b.m == 1) 
+				return outerprodComplexVectorVector(a , fullMatrix(b).val );
+			else {
+				error("Inconsistent dimensions in mul(a,B): size(a) = [" + sa[0] + "," + sa[1] + "], size(B) = [" + sb[0] + "," + sb[1] + "]");
+				return undefined;
+			}
+			break;
+		case "ComplexMatrix":
+			if ( b.m == 1) 
+				return outerprodComplexVectors(a , new ComplexVector(b.re,b.im, true) );
+			else {
+				error("Inconsistent dimensions in mul(a,B): size(a) = [" + sa[0] + "," + sa[1] + "], size(B) = [" + sb[0] + "," + sb[1] + "]");
+				return undefined;
+			}
+			break;
+		default:
+			return undefined;
+			break;
+		}
+		break;
+		
 	case "matrix":
 		switch( type(b) ) {
 		case "number":
 			return mulScalarMatrix(b,a);
+			break;
+		case "Complex":
+			return mulComplexMatrix(b,a);
 			break;
 		case "vector":
 			if ( a.m == 1 ) {
@@ -1403,6 +1493,23 @@ function mul(a,b) {
 				return mulMatrixspVector(a,b);
 			}
 			break;
+		case "ComplexVector":
+			if ( a.m == 1 ) {
+				// dot product with explicit transpose
+				if ( a.val.length != b.length ) {
+					error("Error in mul(a',b): a.length = " + a.val.length + " != " + b.length + " =  b.length.");
+					return undefined; 
+				}
+				return dotComplexVectorVector(b, a.val);
+			}
+			else {			
+				if ( a.n != b.length ) {
+					error("Error in mul(A,b): A.n = " + a.n + " != " + b.length + " = b.length.");
+					return undefined; 
+				}
+				return mulMatrixComplexVector(a,b);
+			}
+			break;
 		case "matrix":
 			if ( a.n != b.m ) {
 				error("Error in mul(A,B): A.n = " + a.n + " != " + b.m + " = B.m.");
@@ -1416,6 +1523,13 @@ function mul(a,b) {
 				return undefined; 
 			}
 			return mulMatrixspMatrix(a,b);
+			break;
+		case "ComplexMatrix":
+			if ( a.n != b.m ) {
+				error("Error in mul(A,B): A.n = " + a.n + " != " + b.m + " = B.m.");
+				return undefined; 
+			}
+			return transpose(mulComplexMatrixMatrix(transpose(b),transpose(a)));
 			break;
 		default:
 			return undefined;
@@ -1474,6 +1588,91 @@ function mul(a,b) {
 				return undefined; 
 			}
 			return mulspMatrixspMatrix(a,b);
+			break;
+		default:
+			return undefined;
+			break;
+		}
+		break;
+	case "ComplexMatrix":
+		switch( type(b) ) {
+		case "number":
+			return mulScalarComplexMatrix(b,a);
+			break;
+		case "Complex":
+			return mulComplexComplexMatrix(b,a);
+			break;
+		case "vector":
+			if ( a.m == 1 ) {
+				// dot product with explicit transpose
+				if ( a.val.length != b.length ) {
+					error("Error in mul(a',b): a.length = " + a.val.length + " != " + b.length + " =  b.length.");
+					return undefined; 
+				}
+				return dotComplexVectorVector(new ComplexVector(a.re,a.im,true), b);
+			}
+			else {			
+				if ( a.n != b.length ) {
+					error("Error in mul(A,b): A.n = " + a.n + " != " + b.length + " = b.length.");
+					return undefined; 
+				}
+				return mulComplexMatrixVector(a,b);
+			}
+			break;
+		case "spvector":
+			if ( a.m == 1 ) {
+				// dot product with explicit transpose
+				if ( a.val.length != b.length ) {
+					error("Error in mul(a',b): a.length = " + a.val.length + " != " + b.length + " =  b.length.");
+					return undefined; 
+				}
+				return dotComplexVectorspVector(new ComplexVector(a.re,a.im,true), b);
+			}
+			else {			
+				if ( a.n != b.length ) {
+					error("Error in mul(A,b): A.n = " + a.n + " != " + b.length + " = b.length.");
+					return undefined; 
+				}
+				return mulComplexMatrixspVector(a,b);
+			}
+			break;
+		case "ComplexVector":
+			if ( a.m == 1 ) {
+				// dot product with explicit transpose
+				if ( a.val.length != b.length ) {
+					error("Error in mul(a',b): a.length = " + a.val.length + " != " + b.length + " =  b.length.");
+					return undefined; 
+				}
+				return dotComplexVectors(new ComplexVector(a.re,a.im,true), b);
+			}
+			else {			
+				if ( a.n != b.length ) {
+					error("Error in mul(A,b): A.n = " + a.n + " != " + b.length + " = b.length.");
+					return undefined; 
+				}
+				return mulComplexMatrixComplexVector(a,b);
+			}
+			break;
+		case "matrix":
+			if ( a.n != b.m ) {
+				error("Error in mul(A,B): A.n = " + a.n + " != " + b.m + " = B.m.");
+				return undefined; 
+			}
+			return mulComplexMatrixMatrix(a,b);
+			break;
+		case "spmatrix":
+			if ( a.n != b.m ) {
+				error("Error in mul(A,B): A.n = " + a.n + " != " + b.m + " = B.m.");
+				return undefined; 
+			}
+			return mulComplexMatrixspMatrix(a,b);
+			break;
+		case "ComplexMatrix":
+			if ( a.n != b.m ) {
+				error("Error in mul(A,B): A.n = " + a.n + " != " + b.m + " = B.m.");
+				return undefined; 
+			}
+			return mulComplexMatrices(a,b);
 			break;
 		default:
 			return undefined;
@@ -2193,6 +2392,14 @@ function add(a,b) {
 			}
 			return addMatrixspMatrix(a,b);
 			break;
+		case "ComplexMatrix":
+			// Matrix addition
+			if ( a.m != b.m || a.n != b.n ) {
+				error("Error in add(A,B): size(A) = [" + a.m + "," + a.n + "] != [" + b.m + "," + b.n + "] = size(B).");
+				return undefined;
+			}
+			return addComplexMatrixMatrix(b,a);
+			break;
 		case "vector":
 		case "spvector":
 		default:
@@ -2248,6 +2455,72 @@ function add(a,b) {
 		case "spvector":
 		default:
 			error("Error in add(A,b): a is a sparse matrix and B is a " + tb + ".");
+			return undefined;
+			break;			
+		}		
+	}
+	else if ( ta == "ComplexVector" ) {
+		switch(tb) {
+		case "vector":
+			// vector addition
+			if ( a.length != b.length ) {
+				error("Error in add(a,b): a.length = " + a.length + " != " + b.length + " = b.length.");
+				return undefined;
+			}
+			return addComplexVectorVector(a,b);
+			break;
+		case "spvector":
+			if ( a.length != b.length ) {
+				error("Error in add(a,b): a.length = " + a.length + " != " + b.length + " = b.length.");
+				return undefined;
+			}
+			return addComplexVectorspVector(a,b);
+			break;
+		case "ComplexVector":
+			if ( a.length != b.length ) {
+				error("Error in add(a,b): a.length = " + a.length + " != " + b.length + " = b.length.");
+				return undefined;
+			}
+			return addComplexVectors(b,a);
+			break;
+		case "matrix":
+		case "spmatrix":
+		default:
+			error("Error in add(a,B): a is a vector and B is a " + tb + ".");
+			return undefined;
+			break;			
+		}
+	}
+	else if ( ta == "ComplexMatrix" ) {
+		switch(tb) {
+		case "matrix":
+			// Matrix addition
+			if ( a.m != b.m || a.n != b.n ) {
+				error("Error in add(A,B): size(A) = [" + a.m + "," + a.n + "] != [" + b.m + "," + b.n + "] = size(B).");
+				return undefined;
+			}
+			return addComplexMatrixMatrix(a,b);
+			break;
+		case "spmatrix":
+			// Matrix addition
+			if ( a.m != b.m || a.n != b.n ) {
+				error("Error in add(A,B): size(A) = [" + a.m + "," + a.n + "] != [" + b.m + "," + b.n + "] = size(B).");
+				return undefined;
+			}
+			return addComplexMatrixspMatrix(a,b);
+			break;
+		case "ComplexMatrix":
+			// Matrix addition
+			if ( a.m != b.m || a.n != b.n ) {
+				error("Error in add(A,B): size(A) = [" + a.m + "," + a.n + "] != [" + b.m + "," + b.n + "] = size(B).");
+				return undefined;
+			}
+			return addComplexMatrices(a,b);
+			break;
+		case "vector":
+		case "spvector":
+		default:
+			error("Error in add(A,b): a is a matrix and B is a " + tb + ".");
 			return undefined;
 			break;			
 		}		
@@ -2548,11 +2821,17 @@ function minus ( x ) {
 	case "spvector":
 		return new spVector(x.length, minusVector(x.val), x.ind );		
 		break;
+	case "ComplexVector":
+		return minusComplexVector(x);
+		break;
 	case "matrix":
 		return new Matrix(x.m, x.n, minusVector(x.val), true );		
 		break;
 	case "spmatrix":
 		return new spMatrix(x.m, x.n, minusVector(x.val), x.cols, x.rows );		
+		break;
+	case "ComplexMatrix":
+		return minusComplexMatrix(x);
 		break;
 	default:
 		return undefined;
@@ -2983,11 +3262,18 @@ function transpose( A ) {
 		case "spvector":
 			return transposespVector(A);
 			break;
+		case "ComplexVector":
+			var res = new ComplexMatrix(1,A.length, conj(A));
+			return res;	// matrix with a single row
+			break;
 		case "matrix":	
 			return transposeMatrix(A);
 			break;
 		case "spmatrix":
 			return transposespMatrix(A);
+			break;
+		case "ComplexMatrix":
+			return transposeComplexMatrix(A);
 			break;
 		default:
 			return undefined;

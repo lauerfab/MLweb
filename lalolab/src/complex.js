@@ -164,7 +164,7 @@ function ComplexMatrix(a, b, values, valuesimag) {
 		/** @const */ this.n = a.n;
 		/** @const */ this.size = [a.m, a.n]; 
 		this.re = vectorCopy(a.re);
-		this.re = vectorCopy(a.im);
+		this.im = vectorCopy(a.im);
 	}
 	else if (typeof(a) == "number" && typeof(b) == "number") {
 		/** @const */ this.length = a;
@@ -179,7 +179,7 @@ function ComplexMatrix(a, b, values, valuesimag) {
 			this.re = vectorCopy(values.re);
 			this.im = vectorCopy(values.im);
 		}
-		else if ( values instanceof Float64Array && typeof(valuesimage) != "undefined" &&  valuesimag instanceof Float64Array) {
+		else if ( values instanceof Float64Array && typeof(valuesimag) != "undefined" &&  valuesimag instanceof Float64Array) {
 			this.re = values;
 			this.im = valuesimag;	// !! no copy!
 		}
@@ -210,12 +210,24 @@ ComplexMatrix.prototype.get = function (i,j) {
 	return new Complex(this.re[i*this.n + j], this.im[i*this.n + j]);
 }
 ComplexVector.prototype.set = function (i, z) {
-	this.re[i] = z.re;
-	this.im[i] = z.im;
+	if ( typeof(z) == "number" )  {
+		this.re[i] = z;
+		this.im[i] =	0;
+	}
+	else {
+		this.re[i] = z.re;
+		this.im[i] = z.im;
+	}
 }
 ComplexMatrix.prototype.set = function (i, j, z) {
-	this.re[i*this.n + j] = z.re;
-	this.im[i*this.n + j] = z.im;
+	if ( typeof(z) == "number" )  {
+		this.re[i*this.n + j] = z;
+		this.im[i*this.n + j] =	0;
+	}
+	else {
+		this.re[i*this.n + j] = z.re;
+		this.im[i*this.n + j] = z.im;
+	}
 }
 ComplexVector.prototype.getSubVector = function (rowsrange) {
 	const n = rowsrange.length;
@@ -226,6 +238,17 @@ ComplexVector.prototype.getSubVector = function (rowsrange) {
 	}
 	return res;
 }
+ComplexVector.prototype.setVectorScalar = function (rowsrange, B) {
+	var i;
+	for (i = 0; i< rowsrange.length; i++) 
+		A.set ( rowsrange[i], B);
+}
+ComplexVector.prototype.setVectorVector = function (rowsrange, B) {
+	var i;
+	for (i = 0; i< rowsrange.length; i++) 
+		A.set(rowsrange[i], B[i]);
+}
+
 
 
 function real(z) {
@@ -247,6 +270,61 @@ function imag(z) {
 		return new Matrix(z.m, z.n, z.im);
 	else
 		return 0;		
+}
+
+/**
+ * @param {MatrixComplex} 
+ */
+function transposeComplexMatrix ( A ) {
+	// Hermitian transpose = conjugate transpose
+	const m = A.m;
+	const n = A.n;
+	if ( m > 1 ) {
+		var i;
+		var j;
+		var res = new ComplexMatrix( n,m);
+		var Aj = 0;
+		for ( j=0; j< m;j++) {
+			var ri = 0;
+			for ( i=0; i < n ; i++) {
+				res.re[ri + j] = A.re[Aj + i];
+				res.im[ri + j] = -A.im[Aj + i];
+				ri += m;
+			}
+			Aj += n;
+		}
+		return res;
+	}
+	else {
+		return new ComplexVector(A.re,minusVector(A.im));
+	}
+}
+/**
+ * @param {MatrixComplex} 
+ */
+ComplexMatrix.prototype.transpose = function ( ) {
+	// simple Transpose without conjugate
+	const m = A.m;
+	const n = A.n;
+	if ( m > 1 ) {
+		var i;
+		var j;
+		var res = new ComplexMatrix( n,m);
+		var Aj = 0;
+		for ( j=0; j< m;j++) {
+			var ri = 0;
+			for ( i=0; i < n ; i++) {
+				res.re[ri + j] = A.re[Aj + i];
+				res.im[ri + j] = A.im[Aj + i];
+				ri += m;
+			}
+			Aj += n;
+		}
+		return res;
+	}
+	else {
+		return new ComplexVector(A.re,A.im);
+	}
 }
 
 
@@ -539,6 +617,21 @@ function dotComplexVectors(a, b) {
 	return z;
 }
 /**
+ * @param {ComplexVector}
+ * @param {Float64Array}
+ * @return {Complex} 
+ */
+function dotComplexVectorVector(a, b) {
+	// = b^T a
+	var z = new Complex(); 
+	const n = a.length;
+	for ( var i=0; i< n; i++) {
+		z.re += a.re[i] * b[i];
+		z.im += a.im[i] * b[i];
+	}
+	return z;
+}
+/**
  * @param {number}
  * @param {ComplexVector}
  * @return {ComplexVector} 
@@ -629,7 +722,7 @@ function mulComplexMatrix(a, b) {
  */
 function mulComplexMatrixVector(a, b) {
 	const m = a.m;
-	const n = b.n;
+	const n = a.n;
 	var z = new ComplexVector(m); 
 	var ai = 0;
 	for ( var i=0; i< m; i++) {
@@ -661,7 +754,42 @@ function mulComplexMatrixComplexVector(a, b) {
 	return z;
 }
 
-
+/**
+ * @param {ComplexMatrix}
+ * @param {ComplexMatrix}
+ * @return {ComplexMatrix} 
+ */
+function mulComplexMatrices(A, B) {
+	const m = A.length;
+	const n = B.n;
+	const n2 = B.length;
+	
+	var Are = A.re; 
+	var Aim = A.im;
+	var Bre = B.re;
+	var Bim = B.im;
+	
+	var Cre = new Float64Array(m*n);
+	var Cim = new Float64Array(m*n);	
+	var aik;
+	var Aik = 0;
+	var Ci = 0;
+	for (var i=0;i < m ; i++) {		
+		var bj = 0;
+		for (var k=0; k < n2; k++ ) {
+			aikre = Are[Aik];
+			aikim = Aim[Aik];
+			for (var j =0; j < n; j++) {
+				Cre[Ci + j] += aikre * Bre[bj] - aikim * Bim[bj];
+				Cim[Ci + j] += aikre * Bim[bj] + aikim * Bre[bj];
+				bj++;
+			}	
+			Aik++;					
+		}
+		Ci += n;
+	}
+	return  new ComplexMatrix(m,n,Cre, Cim);
+}
 
 
 
