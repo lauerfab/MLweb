@@ -1827,17 +1827,26 @@ function entrywisemul(a,b) {
 		case "number":
 			return a*b;
 			break;
+		case "Complex":
+			return mulComplexReal(b,a);
+			break;
 		case "vector":			
 			return mulScalarVector(a,b);
 			break;
 		case "spvector":
 			return mulScalarspVector(a,b);
 			break;
+		case "ComplexVector":
+			return mulScalarComplexVector(b,a);
+			break;
 		case "matrix":
 			return mulScalarMatrix(a,b);
 			break;
 		case "spmatrix":
 			return mulScalarspMatrix(a,b);
+			break;
+		case "ComplexMatrix":
+			return mulScalarComplexMatrix(b,a);
 			break;
 		default:
 			return undefined;
@@ -1849,12 +1858,22 @@ function entrywisemul(a,b) {
 		case "number":
 			return mulScalarVector(b,a);
 			break;
+		case "Complex":
+			return mulComplexVector(b,a);
+			break;
 		case "vector":
 			if ( a.length != b.length ) {
 				error("Error in entrywisemul(a,b): a.length = " + a.length + " != " + b.length + " = b.length.");
 				return undefined; 
 			}	
 			return entrywisemulVector(a,b);
+			break;
+		case "ComplexVector":
+			if ( a.length != b.length ) {
+				error("Error in entrywisemul(a,b): a.length = " + a.length + " != " + b.length + " = b.length.");
+				return undefined; 
+			}	
+			return entrywisemulComplexVectorVector(b,a);
 			break;
 		case "spvector":
 			if ( a.length != b.length ) {
@@ -1864,12 +1883,10 @@ function entrywisemul(a,b) {
 			return entrywisemulspVectorVector(b,a);
 			break;
 		case "matrix":
-			error("Error in entrywisemul(a,B): a is a vector and B is a Matrix.");
-			return undefined;			
-			break;
 		case "spmatrix":
-			error("Error in entrywisemul(a,B): a is a vector and B is a Matrix.");
-			return undefined;
+		case "ComplexMatrix":
+			error("Error in entrywisemul(a,B): a is a vector and B is a matrix.");
+			return undefined;			
 			break;
 		default:
 			return undefined;
@@ -1913,11 +1930,12 @@ function entrywisemul(a,b) {
 		case "number":
 			return mulScalarMatrix(b,a);
 			break;
-		case "vector":
-			error("Error in entrywisemul(A,b): A is a Matrix and b is a vector.");
-			return undefined;
+		case "Complex":
+			return mulComplexMatrix(b,a);
 			break;
+		case "vector":
 		case "spvector":
+		case "ComplexVector":
 			error("Error in entrywisemul(A,b): A is a Matrix and b is a vector.");
 			return undefined;
 			break;
@@ -1934,6 +1952,13 @@ function entrywisemul(a,b) {
 				return undefined;
 			}
 			return entrywisemulspMatrixMatrix(b,a);
+			break;
+		case "ComplexMatrix":
+			if ( a.m != b.m || a.n != b.n ) {
+				error("Error in entrywisemul(A,B): size(A) = [" + a.m + "," + a.n + "] != [" + b.m + "," + b.n + "] = size(B).");
+				return undefined;
+			}
+			return entrywisemulComplexMatrixMatrix(b,a);
 			break;
 		default:
 			return undefined;
@@ -1966,6 +1991,86 @@ function entrywisemul(a,b) {
 				return undefined;
 			}
 			return entrywisemulspMatrices(a,b);
+			break;
+		default:
+			return undefined;
+			break;
+		}
+		break;
+	case "ComplexVector":
+		switch( type(b) ) {
+		case "number":
+			return mulScalarComplexVector(b,a);
+			break;
+		case "Complex":
+			return mulComplexComplexVector(b,a);
+			break;
+		case "vector":
+			if ( a.length != b.length ) {
+				error("Error in entrywisemul(a,b): a.length = " + a.length + " != " + b.length + " = b.length.");
+				return undefined; 
+			}	
+			return entrywisemulComplexVectorVector(a,b);
+			break;
+		case "ComplexVector":
+			if ( a.length != b.length ) {
+				error("Error in entrywisemul(a,b): a.length = " + a.length + " != " + b.length + " = b.length.");
+				return undefined; 
+			}	
+			return entrywisemulComplexVectors(a,b);
+			break;
+		case "spvector":
+			if ( a.length != b.length ) {
+				error("Error in entrywisemul(a,b): a.length = " + a.length + " != " + b.length + " = b.length.");
+				return undefined; 
+			}	
+			return entrywisemulComplexVectorspVector(a,b);
+			break;
+		case "matrix":
+		case "spmatrix":
+		case "ComplexMatrix":
+			error("Error in entrywisemul(a,B): a is a vector and B is a matrix.");
+			return undefined;			
+			break;
+		default:
+			return undefined;
+			break;
+		}
+		break;
+	case "ComplexMatrix":
+		switch( type(b) ) {
+		case "number":
+			return mulScalarComplexMatrix(b,a);
+			break;
+		case "Complex":
+			return mulComplexComplexMatrix(b,a);
+			break;
+		case "vector":
+		case "spvector":
+		case "ComplexVector":
+			error("Error in entrywisemul(A,b): A is a Matrix and b is a vector.");
+			return undefined;
+			break;
+		case "matrix":
+			if ( a.m != b.m || a.n != b.n ) {
+				error("Error in entrywisemul(A,B): size(A) = [" + a.m + "," + a.n + "] != [" + b.m + "," + b.n + "] = size(B).");
+				return undefined;
+			}
+			return entrywisemulComplexMatrixMatrix(a,b);
+			break;
+		case "spmatrix":
+			if ( a.m != b.m || a.n != b.n ) {
+				error("Error in entrywisemul(A,B): size(A) = [" + a.m + "," + a.n + "] != [" + b.m + "," + b.n + "] = size(B).");
+				return undefined;
+			}
+			return entrywisemulComplexMatrixspMatrix(a,b);
+			break;
+		case "ComplexMatrix":
+			if ( a.m != b.m || a.n != b.n ) {
+				error("Error in entrywisemul(A,B): size(A) = [" + a.m + "," + a.n + "] != [" + b.m + "," + b.n + "] = size(B).");
+				return undefined;
+			}
+			return entrywisemulComplexMatrices(a,b);
 			break;
 		default:
 			return undefined;

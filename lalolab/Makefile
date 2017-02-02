@@ -21,8 +21,8 @@ jszip.min.js:
 	
 # We do not include toolboxes in lalolib.js: explicitly load them with <script...> in the html file
 # This avoids loading a large file with toolboxes that are not used.
-lalolib.js: src/lalolibbase.js src/linalg.js src/sparse.js src/laloglpk.js src/glpk.min.js src/stats.js src/laloplots.js 
-	cat src/lalolibbase.js src/linalg.js src/sparse.js src/laloglpk.js src/glpk.min.js src/stats.js src/laloplots.js > lalolib.js 
+lalolib.js: src/lalolibbase.js src/linalg.js src/sparse.js src/laloglpk.js src/glpk.min.js src/stats.js src/complex.js src/laloplots.js 
+	cat src/lalolibbase.js src/linalg.js src/sparse.js src/laloglpk.js src/glpk.min.js src/stats.js src/complex.js src/laloplots.js > lalolib.js 
 
 # ML.js includes LALOLib plus Machine learning functions
 ml.js: lalolib.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/Loaders.js src/MLutils.js

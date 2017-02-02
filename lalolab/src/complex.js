@@ -514,6 +514,67 @@ function entrywisedivComplexVectors(a, b) {
 	return z;
 }
 /**
+ * @param {ComplexMatrix}
+ * @param {ComplexMatrix}
+ * @return {ComplexMatrix} 
+ */
+function entrywisemulComplexMatrices(a, b) {
+	const n = a.m * a.n;
+	var z = new ComplexMatrix(a.m, a.n);
+	for ( var i=0; i< n; i++) {
+		z.re[i] = a.re[i] * b.re[i] - a.im[i] * b.im[i];
+		z.im[i] = a.im[i] * b.re[i] + a.re[i] * b.im[i];
+	}
+	return z;
+}
+/**
+ * @param {ComplexMatrix}
+ * @param {ComplexMatrix}
+ * @return {ComplexMatrix} 
+ */
+function entrywisedivComplexMatrices(a, b) {
+	const n = a.m * a.n;
+	var z = new ComplexMatrix(a.m, a.n);
+	for ( var i=0; i< n; i++) {
+		var bre = b.re[i];
+		var bim = b.im[i]; 
+		var denom = bre*bre + bim*bim;
+		z.re[i] = (a.re[i]*bre + a.im[i]*bim) / denom;
+		z.im[i] = (a.im[i]*bre - a.re[i]*bim) / denom;		
+	}
+	return z;
+}
+
+/**
+ * @param {ComplexVector}
+ * @param {Float64Array}
+ * @return {ComplexVector} 
+ */
+function entrywisemulComplexVectorVector(a, b) {
+	const n = a.length;
+	var z = new ComplexVector(n);
+	for ( var i=0; i< n; i++) {
+		z.re[i] = a.re[i] * b[i];
+		z.im[i] = a.im[i] * b[i];
+	}
+	return z;
+}
+/**
+ * @param {ComplexMatrix}
+ * @param {Matrix}
+ * @return {ComplexMatrix} 
+ */
+function entrywisemulComplexMatrixMatrix(a, b) {
+	const n = a.m * a.n;
+	var z = new ComplexMatrix(a.m, a.n);
+	for ( var i=0; i< n; i++) {
+		z.re[i] = a.re[i] * b.val[i];
+		z.im[i] = a.im[i] * b.val[i];
+	}
+	return z;
+}
+
+/**
  * @param {ComplexVector}
  * @return {ComplexVector} 
  */
@@ -782,6 +843,41 @@ function mulComplexMatrices(A, B) {
 			for (var j =0; j < n; j++) {
 				Cre[Ci + j] += aikre * Bre[bj] - aikim * Bim[bj];
 				Cim[Ci + j] += aikre * Bim[bj] + aikim * Bre[bj];
+				bj++;
+			}	
+			Aik++;					
+		}
+		Ci += n;
+	}
+	return  new ComplexMatrix(m,n,Cre, Cim);
+}
+/**
+ * @param {ComplexMatrix}
+ * @param {Matrix}
+ * @return {ComplexMatrix} 
+ */
+function mulComplexMatrixMatrix(A, B) {
+	const m = A.m;
+	const n = B.n;
+	const n2 = B.m;
+	
+	var Are = A.re; 
+	var Aim = A.im;
+	var Bre = B.val;
+	
+	var Cre = new Float64Array(m*n);
+	var Cim = new Float64Array(m*n);	
+	var aik;
+	var Aik = 0;
+	var Ci = 0;
+	for (var i=0;i < m ; i++) {		
+		var bj = 0;
+		for (var k=0; k < n2; k++ ) {
+			aikre = Are[Aik];
+			aikim = Aim[Aik];
+			for (var j =0; j < n; j++) {
+				Cre[Ci + j] += aikre * Bre[bj];
+				Cim[Ci + j] += aikim * Bre[bj];
 				bj++;
 			}	
 			Aik++;					
