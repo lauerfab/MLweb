@@ -30,8 +30,9 @@ ml.js: lalolib.js src/kernels.js src/Classifier.js src/Regression.js src/Cluster
 	
 # version for LALOLab (different printing functions...)
 # All toolboxes are included in LALOLab by default
-laloliblab.js: src/linalg.js src/sparse.js src/laloglpk.js src/stats.js src/glpk.min.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/GraphicalModel.js src/Loaders.js src/MLutils.js toolboxes
-	cat src/linalg.js src/sparse.js src/laloglpk.js src/glpk.min.js src/stats.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/GraphicalModel.js src/Loaders.js src/MLutils.js toolboxes/*.js > laloliblab.js
+laloliblab.js: src/linalg.js src/sparse.js src/laloglpk.js src/stats.js src/glpk.min.js src/complex.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/GraphicalModel.js src/Loaders.js src/MLutils.js toolboxes
+	cat src/linalg.js src/sparse.js src/laloglpk.js src/glpk.min.js src/stats.js src/complex.js src/kernels.js src/Classifier.js src/Regression.js src/Clustering.js src/DimReduction.js src/GraphicalModel.js src/Loaders.js src/MLutils.js toolboxes/*.js > laloliblab.js
+	echo "const I = Complex_I;" >> laloliblab.js
 
 # Online Help 
 lalohelp.js: src/lalohelpbase.js help/*

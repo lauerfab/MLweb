@@ -74,7 +74,10 @@ function isScalar( x ) {
 			return true;
 			break;		
 		default:
-			return false;
+			if (type(x) == "Complex")
+				return true;
+			else
+				return false;
 			break;
 	}
 }
@@ -175,31 +178,34 @@ function array2vec( a ) {
 }
 
 function size( A, sizealongdimension ) {
-	var size;
+	var s;
 	switch( type(A) ) {
 	case "string":
 	case "boolean":
 	case "number":
-		size = [1,1];
+	case "Complex":
+		s = [1,1];
 		break;
 	case "vector":
 	case "spvector":
-		size = [A.length, 1];
+	case "ComplexVector":
+		s = [A.length, 1];
 		break;
 	case "matrix":
 	case "spmatrix":
-		size = A.size; 
+	case "ComplexMatrix":	
+		s = A.size; 
 		break;
 	default: 
-		LALOLIB_ERROR = "Cannot determine size of object";
+		error( "Cannot determine size of object" );
 		return undefined;
 		break;
 	}
 	
 	if ( typeof(sizealongdimension) == "undefined" ) 
-		return size;
+		return s;
 	else
-		return size[sizealongdimension-1];	
+		return s[sizealongdimension-1];	
 
 }
 
@@ -270,6 +276,29 @@ function diag( A ) {
 		}
 		return v;
 	}
+	else if (typeA == "ComplexVector" ) {
+		var M = new ComplexMatrix(A.length,A.length);
+		var j = 0;
+		const stride = A.length+1;
+		for ( i=0; i < A.length; i++) {
+				M.re[j] = A.re[i];
+				M.im[j] = A.im[i];
+				j += stride;
+		}
+		return M;
+	}
+	else if ( typeA == "ComplexMatrix") {
+		var n = Math.min(A.m, A.n);
+		var v = new ComplexVector(n);
+		var j = 0;
+		const stride2 = A.n+1;
+		for ( i =0; i< n;i++) {
+			v.re[i] = A.re[j];	
+			v.im[i] = A.im[j];
+			j+=stride2;
+		}
+		return v;
+	}
 }
 
 /**
@@ -286,8 +315,14 @@ function matrixCopy( A ) {
 	case "vector":
 		return vectorCopy(A);
 		break;
+	case "ComplexVector":
+		return new ComplexVector(A);
+		break;
 	case "matrix":
 		return new Matrix(A.m, A.n, A.val);
+		break;
+	case "ComplexMatrix":
+		return new ComplexMatrix(A);
 		break;
 	case "Array":
 		return arrayCopy ( A ) ;
@@ -469,7 +504,33 @@ function get ( A , rowsrange, colsrange) {
 			return A.get( rowsrange );	// get v[i]					
 		else 
 			return getSubspVector(A, rowsrange);//TODO		
-	}		
+	}
+	else if ( typeA == "ComplexVector") {
+		if ( typerows == "number" ) 
+			return A.get( rowsrange );	// get v[i]	
+		else
+			return A.getSubVector(rowsrange);
+	}	
+	else if ( typeA == "ComplexMatrix") {		
+		
+		if ( typerows == "number" )
+			rowsrange = [rowsrange];
+
+		if ( typecols == "number" )
+			colsrange = [colsrange];
+		
+		if ( rowsrange.length == 1 && colsrange.length == 1 ) 
+			return A.get(i,j);
+
+		if ( rowsrange.length == 0 ) 				
+			return A.getCols(colsrange);// get(A,[],4) <=> cols(A,4)
+		
+		if (colsrange.length == 0 ) 			
+			return A.getRows(rowsrange);// get(A,3,[]) <=> rows(A,3)
+			
+		// otherwise:
+		return A.getSubMatrix(rowsrange, colsrange);
+	}
 	return undefined;
 }
 function getSubMatrix(A, rowsrange, colsrange) {
@@ -1079,10 +1140,20 @@ function apply( f, x ) {
 	// Generic wrapper to apply scalar functions 
 	// element-wise to vectors and matrices
 	if ( typeof(f) != "function")
-		return "undefined";
+		return undefined;
 	switch ( type( x ) ) {
 	case "number":
 		return f(x);
+		break;
+	case "Complex":
+		var ComplexFunctions = ["exp", "abs"];
+		var fc = ComplexFunctions.indexOf(f.name);
+		if ( fc >= 0 )
+			return eval(ComplexFunctions[fc] + "Complex(x);");
+		else {
+			error("This function has no Complex counterpart (yet).");
+			return undefined;
+		}
 		break;
 	case "vector":
 		return applyVector(f, x);
@@ -1090,11 +1161,23 @@ function apply( f, x ) {
 	case "spvector":
 		return applyspVector(f, x);
 		break;
+	case "ComplexVector":
+		if ( f.name == "abs" )
+			return absComplex(x);
+		else
+			return applyComplexVector(f, x);
+		break;
 	case "matrix":
 		return applyMatrix(f, x);
 		break;
 	case "spmatrix":
 		return applyspMatrix(f, x);
+		break;
+	case "ComplexMatrix":
+		if ( f.name == "abs" )
+			return absComplex(x);
+		else
+			return applyComplexMatrix(f, x);
 		break;
 	default: 
 		return "undefined";
@@ -1107,7 +1190,22 @@ function applyVector( f, x ) {
 		res[i] = f(x[i]);	
 	return res;
 }
-
+function applyComplexVector( f, x ) {
+	const nv = x.length;
+	var res = new ComplexVector(nv);
+	for (var i=0; i< nv; i++) 
+		res.set(i, f(x.get(i) ) );	
+	return res;
+}
+function applyComplexMatrix( f, x ) {
+	const m = x.m;
+	const n = x.n;
+	var res = new ComplexMatrix(m, n);
+	for (var i=0; i< m; i++) 
+		for ( var j =0; j < n; j++)
+			res.set(i, j, f(x.get(i,j) ) );
+	return res;
+}
 function applyMatrix(f, x) {
 	return new Matrix(x.m, x.n, applyVector(f, x.val), true);
 }
@@ -1118,9 +1216,9 @@ function applyMatrix(f, x) {
 function mul(a,b) {
 	var sa = size(a);
 	var sb = size(b); 
-	if (typeof(a) != "number" && sa[0] == 1 && sa[1] == 1 ) 
+	if ( !isScalar(a) && sa[0] == 1 && sa[1] == 1 ) 
 		a = get(a, 0, 0);
-	if (typeof(b) != "number" && sb[0] == 1 && sb[1] == 1 ) 
+	if ( !isScalar(b) && sb[0] == 1 && sb[1] == 1 ) 
 		b = get(b, 0, 0);
 
 	switch( type(a) ) {
@@ -1129,11 +1227,17 @@ function mul(a,b) {
 		case "number":
 			return a*b;
 			break;
+		case "Complex":
+			return mulComplexReal(b,a);
+			break;
 		case "vector":			
 			return mulScalarVector(a,b);
 			break;
 		case "spvector":
 			return mulScalarspVector(a,b);
+			break;
+		case "ComplexVector":			
+			return mulScalarComplexVector(a,b);
 			break;
 		case "matrix":
 			return mulScalarMatrix(a,b);
@@ -1141,11 +1245,45 @@ function mul(a,b) {
 		case "spmatrix":
 			return mulScalarspMatrix(a,b);
 			break;
+		case "ComplexMatrix":
+			return mulScalarComplexMatrix(a,b);
+			break;
 		default:
 			return undefined;
 			break;
 		}
 		break;
+	case "Complex":
+		switch( type(b) ) {
+		case "number":
+			return mulComplexReal(a,b);
+			break;
+		case "Complex":
+			return mulComplex(a,b);
+			break;
+		case "vector":			
+			return mulComplexVector(a,b);
+			break;
+		case "ComplexVector":			
+			return mulComplexComplexVector(a,b);
+			break;
+		case "spvector":
+			return mulComplexspVector(a,b);
+			break;
+		case "matrix":
+			return mulComplexMatrix(a,b);
+			break;
+		case "ComplexMatrix":
+			return mulComplexComplexMatrix(a,b);
+			break;
+		case "spmatrix":
+			return mulComplexspMatrix(a,b);
+			break;
+		default:
+			return undefined;
+			break;
+		}
+		break;		
 	case "vector":
 		switch( type(b) ) {
 		case "number":
@@ -1951,6 +2089,9 @@ function add(a,b) {
 		return a + b;
 	else if ( ta == "number") {
 		switch(tb) {
+		case "Complex":
+			return addComplexReal(b,a);
+			break;
 		case "vector":
 			return addScalarVector(a,b); 
 			break;
@@ -1963,6 +2104,12 @@ function add(a,b) {
 		case "spmatrix":
 			return addScalarspMatrix(a,b);
 			break;
+		case "ComplexVector":
+			return addScalarComplexVector(a,b); 
+			break;
+		case "ComplexMatrix":
+			return addScalarComplexMatrix(a,b); 
+			break;
 		default:
 			return undefined;
 			break;			
@@ -1970,6 +2117,9 @@ function add(a,b) {
 	}
 	else if ( tb == "number" ) {
 		switch(ta) {
+		case "Complex":
+			return addComplexReal(a,b);
+			break;
 		case "vector":
 			return addScalarVector(b,a); 
 			break;
@@ -1981,6 +2131,12 @@ function add(a,b) {
 			break;
 		case "spmatrix":
 			return addScalarspMatrix(b,a);
+			break;
+		case "ComplexVector":
+			return addScalarComplexVector(b,a); 
+			break;
+		case "ComplexMatrix":
+			return addScalarComplexMatrix(b,a); 
 			break;
 		default:
 			return undefined;
@@ -2003,6 +2159,13 @@ function add(a,b) {
 				return undefined;
 			}
 			return addVectorspVector(a,b);
+			break;
+		case "ComplexVector":
+			if ( a.length != b.length ) {
+				error("Error in add(a,b): a.length = " + a.length + " != " + b.length + " = b.length.");
+				return undefined;
+			}
+			return addComplexVectorVector(b,a);
 			break;
 		case "matrix":
 		case "spmatrix":
@@ -2162,6 +2325,9 @@ function sub(a,b) {
 		return a - b;
 	else if ( ta == "number") {
 		switch(tb) {
+		case "Complex":
+			return addComplexReal(minusComplex(b),a);
+			break;
 		case "vector":
 			return subScalarVector(a,b); 
 			break;
@@ -2181,6 +2347,9 @@ function sub(a,b) {
 	}
 	else if ( tb == "number" ) {
 		switch(ta) {
+		case "Complex":
+			return addComplexReal(b,-a);
+			break;
 		case "vector":
 			return subVectorScalar (a, b);
 			break;

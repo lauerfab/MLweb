@@ -82,7 +82,7 @@ onmessage = function ( WorkerEvent ) {
 
 		LALOLABLastResult = WorkerOutput;
 		
-		if ( WorkerOutput != "LALOLABPLOT") {
+		if ( WorkerOutput != "LALOLABPLOT" && WorkerOutput != "LALOLABSOUND" ) {
 			// return results to be printed
 			if ( WorkerEvent.data.hidecmd ) 
 				postMessage( { "cmd" : "", "output" : WorkerOutput, "size" : WorkerOutputSize } );					
@@ -907,6 +907,15 @@ function colormap(x, y, f, title) {
 	
 }
 
+
+function sound(x, samplerate) {
+	var minx = min(x);
+	var maxx = max(x);
+	x = add(x, -1 - minx);
+	x = entrywisediv(x, 0.5*(maxx-minx));
+	postMessage( { "cmd" : "sound() playing now", "output" :  {"data" : x, "samplerate" : samplerate} } );			
+	return "LALOLABSOUND";
+}
 
 function tex( x ) {
 	switch ( type( x ) ) {
