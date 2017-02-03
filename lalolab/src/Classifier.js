@@ -528,7 +528,6 @@ LDA.prototype.trainMulticlass = function ( X, y) {
 
 	var k;
 	var idx;
-	var i2;
 	var Xk;
 	var mu = new Array(Nclasses); 
 	
@@ -572,7 +571,7 @@ LDA.prototype.predictBinary = function ( x ) {
 	if (typeof(scores) != "undefined")
 		return this.recoverLabels( sign( scores ) );
 	else
-		return "undefined";	
+		return undefined;	
 }
 LDA.prototype.predictMulticlass = function ( x ) {
 	// One-against-all approach
@@ -596,7 +595,7 @@ LDA.prototype.predictMulticlass = function ( x ) {
 		
 	}
 	else
-		return "undefined";	
+		return undefined;	
 }
 
 LDA.prototype.predictscore = function( x ) {
@@ -634,6 +633,201 @@ LDA.prototype.predictscoreBinary = function( x , w, b ) {
 		output = b + mul(x, w);
 	else 
 		output = add( mul(x, w) , b);
+	return output;
+}
+//////////////////////////////////////////////////
+/////		Quadratic Discriminat Analysis (QDA)
+///////////////////////////////////////////////////
+
+function QDA ( params ) {
+	var that = new Classifier ( QDA, params);	
+	return that;
+}
+QDA.prototype.construct = function (params) {
+	
+	// Default parameters:
+	
+	// Set parameters:
+	var i;
+	if ( params) {
+		for (i in params)
+			this[i] = params[i]; 
+	}		
+
+	// Parameter grid for automatic tuning:
+	this.parameterGrid = {   };
+}
+
+QDA.prototype.tune = function ( X, labels ) {
+	var recRate = this.cv(X, labels);
+	return {error: (1-recRate), validationErrors: [(1-recRate)]};
+}
+
+QDA.prototype.train = function ( X, labels ) {
+	// Training function
+
+	// should start by checking labels (and converting them to suitable numerical values): 
+	var y = this.checkLabels( labels ) ;
+	
+	// Call training function depending on binary/multi-class case
+	if ( this.labels.length > 2 ) {		
+		this.trainMulticlass(X, y);		
+	}
+	else {
+		var trainedparams = this.trainBinary(X, y);
+		this.mu = trainedparams.mu; 
+		this.Sigma = trainedparams.Sigma; 
+		this.Sigma_inv = trainedparams.Sigma_inv; 
+		this.b = trainedparams.b;
+		this.dim_input = size(X,2);
+	}
+	/* and return training error rate:
+	return (1 - this.test(X, labels));	*/
+	return this.info();
+}
+QDA.prototype.trainBinary = function ( X, y ) {
+
+	var i1 = find(isEqual(y,1));
+	var i2 = find(isEqual(y,-1));
+	var X1 = getRows(X, i1);
+	var X2 = getRows(X, i2);
+	var mu1 = mean(X1,1).val;
+	var mu2 = mean(X2,1).val;
+	
+	var C1 = cov(X1); 
+	var C2 = cov(X2); 
+	
+	var Sigma_inv = [ inv(C1), inv(C2) ]; 
+	
+	var b = Math.log( i1.length / i2.length ) + 0.5 * Math.log(det(C2) / det(C1) ) ;
+	
+	return {mu: [mu1, mu2], Sigma: [C1, C2], Sigma_inv: Sigma_inv, b: b };
+}
+QDA.prototype.trainMulticlass = function ( X, y) {
+	// Use the 1-against-all decomposition
+	
+	const dim = size(X, 2);
+	this.dim_input = dim;
+	
+	const Nclasses = this.labels.length;
+
+	var k;
+	var idx;
+	var Xk;
+	this.priors = zeros(Nclasses);
+	var mu = new Array(Nclasses); 
+	var Sigma = new Array(Nclasses);
+	var Sigma_inv = new Array(Nclasses);
+	var Sigma_det = new Array(Nclasses);
+	
+	for ( k= 0; k < Nclasses; k++) {
+	
+		idx = find(isEqual(y,k));
+		this.priors[k] = idx.length / y.length; 
+		
+		Xk = getRows(X, idx);
+
+		mu[k] = mean(Xk,1).val;
+		Sigma[k] = cov(Xk); 
+		Sigma_inv[k] = inv(Sigma[k]);
+		Sigma_det[k] = det(Sigma[k]);
+	}
+		
+	this.Sigma = Sigma;
+	this.mu = mu;
+	this.Sigma_inv = Sigma_inv;
+	this.Sigma_det = Sigma_det;	
+}
+QDA.prototype.predict = function ( x ) {
+	if ( this.labels.length > 2) {
+		return this.predictMulticlass( x );		
+	}
+	else 
+		return this.predictBinary( x );		
+}
+QDA.prototype.predictBinary = function ( x ) {
+	
+	var scores = this.predictscoreBinary( x , this.w, this.b);
+	if (typeof(scores) != "undefined")
+		return this.recoverLabels( sign( scores ) );
+	else
+		return undefined;	
+}
+QDA.prototype.predictMulticlass = function ( x ) {
+	// One-against-all approach
+	
+	var scores = this.predictscore( x );
+	if (typeof(scores) != "undefined") {
+		
+		if ( type ( x ) == "matrix" ) {
+			// multiple preidctions for multiple test data
+			var i;
+			var y = new Array(x.length );
+			for ( i = 0; i < x.length; i++)  {
+				y[i] = findmax ( scores.row(i) ) ;
+			}
+			return this.recoverLabels( y );
+		}
+		else {
+			// single prediction
+			return this.recoverLabels( argmax( scores ) );
+		}
+		
+	}
+	else
+		return undefined;	
+}
+
+QDA.prototype.predictscore = function( x ) {
+	if ( this.labels.length > 2) {		
+		if ( this.single_x( x ) ) {
+			var k;
+			var output = log(this.priors);
+			
+			for ( k = 0; k < this.mu.length; k++)  {
+				var diff = sub(x, this.mu[k]);
+				output[k] -= 0.5 * mul(diff, mul(this.Sigma_inv[k], diff) ); 		
+				output[k] -= 0.5 * Math.log(this.Sigma_det[k]);		
+			}
+			
+			return output;
+		}
+		else {
+			var k;
+			var i;
+			var output = zeros(x.length, this.labels.length);
+			for ( i= 0; i< x.length; i++) {
+				for ( k = 0; k < this.mu.length; k++)  {
+					var diff = sub(x.row(i), this.mu[k]);
+					output.val[i*output.n + k] = Math.log(this.priors[k]) - 0.5 * mul(diff, mul(this.Sigma_inv[k], diff) ) - 0.5 * Math.log(this.Sigma_det[k]); 
+				}	// TODO store these logs in the model...
+			}
+			return output;
+		}		
+	}
+	else 
+		return this.predictscoreBinary( x );
+}
+QDA.prototype.predictscoreBinary = function( x ) {
+	var output;
+	if ( this.single_x( x ) ) {
+		output = this.b;
+		var x_mu1 = sub(x, this.mu[0]);
+		var x_mu2 = sub(x, this.mu[1]);
+		
+		output += -0.5 * mul( x_mu1, mul(this.Sigma_inv[0], x_mu1)) + 0.5 * mul( x_mu2, mul(this.Sigma_inv[1], x_mu2));
+	}
+	else {
+		output = zeros(x.length);
+		for ( var i=0; i < x.length; i++) {
+			output[i] = this.b;
+			var xi = x.row(i);
+			var x_mu1 = sub(xi, this.mu[0]);
+			var x_mu2 = sub(xi, this.mu[1]);
+		
+			output[i] += -0.5 * mul( x_mu1, mul(this.Sigma_inv[0], x_mu1)) + 0.5 * mul( x_mu2, mul(this.Sigma_inv[1], x_mu2));	
+		}
+	}
 	return output;
 }
 
@@ -782,7 +976,7 @@ Perceptron.prototype.predictBinary = function ( x ) {
 	if (typeof(scores) != "undefined")
 		return this.recoverLabels( sign( scores ) );
 	else
-		return "undefined";	
+		return undefined;	
 }
 Perceptron.prototype.predictMulticlass = function ( x ) {
 	// One-against-all approach
@@ -806,7 +1000,7 @@ Perceptron.prototype.predictMulticlass = function ( x ) {
 		
 	}
 	else
-		return "undefined";	
+		return undefined;	
 }
 
 Perceptron.prototype.predictscore = function( x ) {
@@ -1146,7 +1340,7 @@ MLP.prototype.predictBinary = function ( x ) {
 	if (typeof(scores) != "undefined")
 		return this.recoverLabels( isGreaterOrEqual( scores, 0.5 ) );	
 	else
-		return "undefined";
+		return undefined;
 }
 MLP.prototype.predictMulticlass = function ( x ) {
 
@@ -1170,7 +1364,7 @@ MLP.prototype.predictMulticlass = function ( x ) {
 		
 	}
 	else
-		return "undefined";	
+		return undefined;	
 }
 
 MLP.prototype.predictscore = function( x_unnormalized ) {
@@ -2055,7 +2249,7 @@ SVM.prototype.predictBinary = function ( x ) {
 	if (typeof(scores) != "undefined")
 		return this.recoverLabels( sign( scores ) );
 	else
-		return "undefined";	
+		return undefined;	
 }
 SVM.prototype.predictMulticlass = function ( x ) {	
 	var scores = this.predictscore( x );
@@ -2126,7 +2320,7 @@ SVM.prototype.predictMulticlass = function ( x ) {
 		
 	}
 	else
-		return "undefined";	
+		return undefined;	
 }
 
 SVM.prototype.predictscore = function( x ) {
@@ -3616,7 +3810,7 @@ MSVM.prototype.predict = function ( x ) {
 		}		
 	}
 	else
-		return "undefined";	
+		return undefined;	
 }
 MSVM.prototype.predictscore = function( x ) {
 
@@ -3834,7 +4028,7 @@ KNN.prototype.predictslow = function ( x ) {
 		var Xtest = x;
 	}	
 	else
-		return "undefined";
+		return undefined;
 
 	var labels = new Array(Xtest.length);
 	var i;
@@ -4071,7 +4265,7 @@ KNN.prototype.predict = function ( x ) {
 		var Xtest = x;
 	}	
 	else
-		return "undefined";
+		return undefined;
 
 	var labels = new Array(Xtest.length);
 	var i;
@@ -4145,7 +4339,7 @@ KNN.prototype.tune = function ( X, labels, Xv, labelsv ) {
 			var Xtest = Xv;
 		}	
 		else
-			return "undefined";
+			return undefined;
 
 		var validationErrors = zeros(K); 
 		var i;
@@ -4711,7 +4905,7 @@ LogReg.prototype.predictBinary = function ( x ) {
 	if (typeof(scores) != "undefined")
 		return this.recoverLabels( sign( scores ) );
 	else
-		return "undefined";	
+		return undefined;	
 }
 
 LogReg.prototype.predictMulticlass = function ( x ) {
@@ -4743,7 +4937,7 @@ LogReg.prototype.predictMulticlass = function ( x ) {
 		
 	}
 	else
-		return "undefined";	
+		return undefined;	
 }
 
 LogReg.prototype.predictscore = function( x ) {
