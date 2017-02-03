@@ -1,8 +1,10 @@
 // Globals for HElP content
 var htmlspace = "&nbsp;";
 var htmltab = htmlspace+htmlspace+htmlspace+htmlspace; 
+var htmldatatypes = "<a href='lalolib.html#datatypes' target='_blank'>data types</a>"; 
 var htmlmatrix = "<a href='lalolib.html#matrix' target='_blank'>matrix</a>"; 
 var htmlvector = "<a href='lalolib.html#vector' target='_blank'>vector</a>";
+var DataTypes = ["vector","matrix","matrices","spvector","spmatrix","ComplexVector","ComplexMatrix"];
 var HELPcontent = new Array();
 var pathToBook = "../book/en/";
 
@@ -19,7 +21,10 @@ function help(cmd , forceshow ) {
 		if ( cmdhelp ) {
 			var htmlhelp = "<h2>" + cmdhelp[1] + "</h2>";
 			htmlhelp += "<h4>" + cmdhelp[2].split("\n").join("<br>") + "</h4>";
-			htmlhelp += "<p class='helpcontent'>" + cmdhelp[3] + "</p>";
+			var description = cmdhelp[3];
+			for ( var d in DataTypes) 
+				description = description.replace( "__" + DataTypes[d], "<a href='lalolib.html#" + DataTypes[d] + "' target='_blank'>" + DataTypes[d] + "</a>");
+			htmlhelp += "<p class='helpcontent'>" + description + "</p>";
 		
 			if ( cmdhelp[5] ) {
 				if ( typeof(cmdhelp[5]) == "string" ) {
