@@ -888,7 +888,7 @@ function range(start, end, inc) {
 		start = 0;
 	}		
 	
-	if ( start == end-1 ) {
+	if ( start == end-inc) {
 		return start;
 	}
 	else if ( start == end) {
