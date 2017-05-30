@@ -25,7 +25,7 @@ Ready-to-use versions of the tools are available online at:
 
 ## Functions provided by LALOLib
 
-- **Linear algerbra:** basic vector and matrix operations, linear system solvers, matrix factorizations (QR, Cholesky), eigendecomposition, singular value decomposition, conjugate gradient sparse linear system solver,... )
+- **Linear algerbra:** basic vector and matrix operations, linear system solvers, matrix factorizations (QR, Cholesky), eigendecomposition, singular value decomposition, conjugate gradient sparse linear system solver, complex numbers/matrices, discrete Fourier transform... )
 - **Statistics:** random numbers, sampling from and estimating standard distributions
 - **Optimization:** steepest descent, BFGS, linear programming (thanks to [glpk.js](https://github.com/hgourvest/glpk.js)), quadratic programming
 
@@ -36,7 +36,7 @@ See [this benchmark](http://mlweb.loria.fr/benchmark/) for a comparison of LALOL
 #### Classification 
 
 - K-nearest neighbors,
-- Linear discriminant analysis,
+- Linear discriminant/quadratic analysis,
 - Naive Bayes classifier,
 - Logistic regression,
 - Perceptron,
