@@ -23,7 +23,7 @@ function help(cmd , forceshow ) {
 			htmlhelp += "<h4>" + cmdhelp[2].split("\n").join("<br>") + "</h4>";
 			var description = cmdhelp[3];
 			for ( var d in DataTypes) 
-				description = description.replace( "__" + DataTypes[d], "<a href='lalolib.html#" + DataTypes[d] + "' target='_blank'>" + DataTypes[d] + "</a>");
+				description = description.split( "__" + DataTypes[d] ).join( "<a href='lalolib.html#" + DataTypes[d] + "' target='_blank'>" + DataTypes[d] + "</a>");
 			htmlhelp += "<p class='helpcontent'>" + description + "</p>";
 		
 			if ( cmdhelp[5] ) {
