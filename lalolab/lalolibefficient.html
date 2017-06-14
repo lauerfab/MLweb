@@ -293,7 +293,7 @@ However, using the LALOLib functions can still be faster in some cases where the
 <h2 id="garbage">Spare the garbage collector: do not create many objects unnecessarily</h2>
 
 <p>
-Memory cannot be explicitly freed in Javascript, which instead relies on an uncontroled garbage collector. This garbage collectors periodically scans all variables and objects to detect the ones that can be destroyed. The more objects (or variables) you create, the longer the scans take, and eventually even the smallest computations can become very slow.
+Memory cannot be explicitly freed in Javascript, which instead relies on an uncontroled garbage collector. This garbage collector periodically scans all variables and objects to detects the ones that can be destroyed. The more objects (or variables) you create, the longer the scans take, and eventually even the smallest computations can become very slow.
 </p>
 <p>
 A typical example of this occurs when you create an m-x-n matrix with many rows as an Array of Arrays instead of using zeros(m,n): 

@@ -425,9 +425,10 @@ function parseWorkerOutput  ( WorkerEvent ) {
 
 // Error messages
 window.onerror = function ( e ) {
-	if ( e.indexOf("DataCloneError") >= 0 ) {
+	if ( e.indexOf("DataCloneError") >= 0 || (e.indexOf("DOMException") >= 0 && e.indexOf("could not be cloned") >= 0 ) ) {
 		if ( cmdline.value.length > 0 ) {
 			// This happens when a complex object is returned from the worker
+			// (might be obsolete, now taken care of in lalolabworker.js)
 		
 			var html = "<p class='outputcmd'> > " + cmdline.value + "</p>";
 		

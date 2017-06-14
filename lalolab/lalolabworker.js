@@ -78,10 +78,15 @@ onmessage = function ( WorkerEvent ) {
 
 		// Execute command
 		var WorkerOutput = self.eval(cmd); 		
+		if ( typeof(WorkerOutput) == "object" && typeof(WorkerOutput.info) == "function" ) {
+			// For complex Objects like classifiers, return the info string rather than the object
+			// that cannot be cloned in postMessage
+			WorkerOutput = WorkerOutput.info(); 	
+		}
 		var WorkerOutputSize = size(WorkerOutput);
 
 		LALOLABLastResult = WorkerOutput;
-		
+	
 		if ( WorkerOutput != "LALOLABPLOT" && WorkerOutput != "LALOLABSOUND" ) {
 			// return results to be printed
 			if ( WorkerEvent.data.hidecmd ) 
@@ -89,6 +94,7 @@ onmessage = function ( WorkerEvent ) {
 			else
 				postMessage( { "cmd" : WorkerCommand, "output" : WorkerOutput, "size" : WorkerOutputSize } );	
 		}
+		
 	}
 }
 

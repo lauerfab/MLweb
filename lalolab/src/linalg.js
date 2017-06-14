@@ -196,9 +196,12 @@ function size( A, sizealongdimension ) {
 	case "ComplexMatrix":	
 		s = A.size; 
 		break;
+	case "object":
+		s = [1,1];
+		break;
 	default: 
-		error( "Cannot determine size of object" );
-		return undefined;
+		s = [1,1]; 
+		//error( "Cannot determine size of object" );
 		break;
 	}
 	
@@ -6782,7 +6785,7 @@ should return [ 817.7597, 2.4750, 0.0030]
 		}
 		else
 			UBV =  bidiagonalize( A, true );
-		console.log(UBV);
+
 		if ( computeU ) {
 			if ( thinU )
 				var U = getRows(UBV.U, range(0,n));//Utrans
