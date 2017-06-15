@@ -36,7 +36,9 @@ function toc ( T ) {
  * @return {string} 
  */
 function type( X ) {
-	if ( X && X.type )
+	if ( X == null )
+		return "undefined";
+	else if ( X.type )
  		return X.type;	 			 	
  	else {
 	 	var t = typeof( X );
