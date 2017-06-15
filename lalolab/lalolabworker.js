@@ -1163,7 +1163,7 @@ function load_data ( datastring ) {
 function load_data_to_data ( datastring ) {
 	// convert a string into a matrix data 
 	var i;
-	var cmd = "data = [ "; 
+	var cmd = "data = mat( [ "; 
 	var row;
 	var rows = datastring.split("\n");
 	for ( i=0; i< rows.length - 1; i++) {
@@ -1184,6 +1184,7 @@ function load_data_to_data ( datastring ) {
 		cmd = cmd.substr(0,cmd.length-1); // remove last comma
 		cmd += "]";
 	}
+	cmd += " , true )";
 	
 	return eval(cmd);
 	
