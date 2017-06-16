@@ -529,8 +529,8 @@ function htmlstr( str ) {
 //// Error handling
 
 function error( msg ) {
-	throw new Error ( msg ) ;	
-//	postMessage( {"error": msg} );
+	//throw new Error ( msg ) ;	
+	postMessage( {"error": msg} );
 }
 
 /////// plot
