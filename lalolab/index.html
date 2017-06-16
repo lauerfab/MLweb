@@ -309,19 +309,19 @@ function parseWorkerOutput  ( WorkerEvent ) {
 			if ( WorkerResultSize[1] == 1 ) {
 				// auto plot ? 
 				if ( WorkerResultSize[0]  < autoPlotSizeLimit ) {
-					output.innerHTML += "<div style='font-size: 80%;' title='Double-click to plot' ondblclick='worker.postMessage({\"cmd\" : \"plot(LALOLABLastResult)\" } );'><p id='" + resid + "' class='outputres'></p></div>";
+					output.innerHTML += "<div id='div" + resid + "' style='font-size: 80%;' title='Double-click to plot' ondblclick='worker.postMessage({\"cmd\" : \"plot(LALOLABLastResult)\" } );'><p id='" + resid + "' class='outputres'></p></div>";
 				}
 				else {
-					output.innerHTML += "<div style='font-size: 80%;' title='Too large to be displayed'><p id='" + resid + "' class='outputres'></p></div>";
+					output.innerHTML += "<div id='div" + resid + "' style='font-size: 80%;' title='Too large to be displayed'><p id='" + resid + "' class='outputres'></p></div>";
 				}
 			}
 			else {
 				// image small enough for autoplot ?				
 				if ( WorkerResultSize[0] * WorkerResultSize[1] < autoPlotSizeLimit ) {
-					output.innerHTML += "<div style='font-size: 80%;' title='Double-click to plot' ondblclick='worker.postMessage({\"cmd\" : \"image(LALOLABLastResult)\" } );'><p id='" + resid + "' class='outputres'></p></div>";
+					output.innerHTML += "<div id='div" + resid + "' style='font-size: 80%;' title='Double-click to plot' ondblclick='worker.postMessage({\"cmd\" : \"image(LALOLABLastResult)\" } );'><p id='" + resid + "' class='outputres'></p></div>";
 				}
 				else {
-					output.innerHTML += "<div style='font-size: 80%;' title='Too large to be displayed' ><p id='" + resid + "' class='outputres'></p></div>";
+					output.innerHTML += "<div id='div" + resid + "' style='font-size: 80%;' title='Too large to be displayed' ><p id='" + resid + "' class='outputres'></p></div>";
 				}
 			}
 			if ( domathjax ) {
@@ -342,7 +342,7 @@ function parseWorkerOutput  ( WorkerEvent ) {
 		}
 		else if ( typeres == "ComplexVector" ) {
 			var resid = "res"+ Ncmds ;
-			output.innerHTML += "<div style='font-size: 80%;'><p id='" + resid + "' class='outputres'></p></div>";
+			output.innerHTML += "<div id='div" + resid + "' style='font-size: 80%;'><p id='" + resid + "' class='outputres'></p></div>";
 			if ( domathjax ) {
 				printTeX( WorkerCommand, WorkerResult,WorkerResultSize,  resid );
 					
@@ -408,6 +408,15 @@ function parseWorkerOutput  ( WorkerEvent ) {
 			output.innerHTML += "<p class='outputres'>" + WorkerResult + "</p>";
 		}
 				
+	}
+	
+	// Remove autoplot function from previous results 
+	if ( Ncmds > 0 ) {
+		var div = document.getElementById("divres" + (Ncmds-1));
+		if( div!=null ) {
+			div.title = "";
+			div.ondblclick = "";
+		}		
 	}
 		
 	// Command history and clear cmdline
