@@ -529,7 +529,7 @@ function htmlstr( str ) {
 //// Error handling
 
 function error( msg ) {
-	//throw new Error ( msg ) ;	
+	//throw new Error ( msg ) ;	// does not get passed to window in Chrome
 	postMessage( {"error": msg} );
 }
 
