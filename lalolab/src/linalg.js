@@ -447,7 +447,12 @@ function get ( A , rowsrange, colsrange) {
 	if ( typeA == "vector" ) {
 			
 		if ( typerows == "number" ) {
-			return A[rowsrange];	// get v[i]			
+			if (rowsrange >= 0 && rowsrange < A.length)
+				return A[rowsrange];	// get v[i]			
+			else {
+				error("Error in a[i] = get(a,i): Index i="+rowsrange+" out of bounds [0,"+(A.length-1)+"]");
+				return undefined;
+			}
 		}
 		else {
 			return getSubVector(A, rowsrange);

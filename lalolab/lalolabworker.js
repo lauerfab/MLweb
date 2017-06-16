@@ -77,7 +77,24 @@ onmessage = function ( WorkerEvent ) {
 		}
 
 		// Execute command
-		var WorkerOutput = self.eval(cmd); 		
+		var errEvent;
+		try {
+			var WorkerOutput = self.eval(cmd); 		
+		}
+		catch (errEvent) {
+			if (errEvent instanceof TypeError)
+				error("TypeError: " + errEvent.message);
+			else if ( errEvent instanceof ReferenceError)
+				error ("ReferenceError: " + errEvent.message);
+			else if ( errEvent instanceof RangeError)
+				error ("RangeError: " + errEvent.message);	
+			else if ( errEvent instanceof SyntaxError)
+				error ("RangeError: " + errEvent.message);	
+			else if ( errEvent instanceof URIError)
+				error ("URIError: " + errEvent.message);	
+			else 		
+				error ("Error: " + errEvent.message);
+		}
 		if ( typeof(WorkerOutput) == "object" && typeof(WorkerOutput.info) == "function" ) {
 			// For complex Objects like classifiers, return the info string rather than the object
 			// that cannot be cloned in postMessage
@@ -532,6 +549,7 @@ function error( msg ) {
 	//throw new Error ( msg ) ;	// does not get passed to window in Chrome
 	postMessage( {"error": msg} );
 }
+//self.onerror = function (event) {error(event.message);}; // does not work in Worker which gives "Script error." instead of an event
 
 /////// plot
 
