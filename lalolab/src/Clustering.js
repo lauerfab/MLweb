@@ -1,7 +1,17 @@
 ////////////////////////////////////////////
-///	Clustering functions for the ML library
+///	Clustering functions for the ML.js library
 /////////////////////////////////////////////
 
+/****************************************
+		Spectral clustering
+
+	Implemented as in Ng. et al, NIPS, 2002
+
+	Possible affinity functions (choose via type of sigma): 
+	- Gaussian RBF (default) (sigma is the bandwidth)
+	- custom function (sigma) computing affinity between two points
+	- custom affinity matrix (sigma) computed elsewhere 
+*****************************************/
 function spectralclustering ( X , n, sigma ) {
 	const N = X.length;
 	switch( type(sigma) ) {
@@ -64,6 +74,14 @@ function spectralclustering ( X , n, sigma ) {
 	return labels;	
 }
 
+/**************************************
+		K-means
+		
+	- including multiple random restarts 
+	- exact algorithm for dim(x_i) = 1 tests all linear cuts
+		(if X is a vector instead of a matrix)
+	
+***************************************/
 function kmeans(X, n, restarts) {
 	
 	if ( type ( X) == "vector") {

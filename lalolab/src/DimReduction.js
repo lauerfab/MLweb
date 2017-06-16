@@ -134,11 +134,25 @@ DimReduction.prototype.info = function () {
 	return str;
 }
 
-/////////////////////////////////////
-/// Pincipal Component Analysis (PCA)
-//
-//	main parameter: { dimension: integer} 
-/////////////////////////////////////
+/****************************************
+	Principal Component Analysis (PCA)
+	
+	reduce data to the given dimension d by
+
+	- centering X -> Xc
+	- computing d eigenvectors of Xc'Xc
+
+	or, if d is not given or large, 
+	by computing the SVD of Xc. 
+	
+	If d is not given, then it is the smallest d such that 
+	
+	sum_i=1^d lambda_i / sum_i=1^X.n lambda_i >= energy
+	
+	where lambda_i are ordered eigenvalues of Xc'Xc
+
+	Parameters: { dimension: integer, energy: number in (0,1) } 
+*****************************************/
 
 function PCA ( params) {
 	var that = new DimReduction ( PCA, params);

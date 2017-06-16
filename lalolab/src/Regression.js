@@ -423,9 +423,12 @@ AutoReg.prototype.predict = function ( X ) {
 
 
 
-//////////////////////////////////////
-////// LeastSquares
-////////////////////////////////////
+/**************************************
+	 Least Squares
+	 
+	 implemented by w = X \ y 
+	 (QR factorization, unless X is square)
+***************************************/
 function LeastSquares ( params) {
 	var that = new Regression ( LeastSquares, params);
 	return that;
@@ -472,9 +475,13 @@ LeastSquares.prototype.train = function (X, y) {
 }
 
 
-//////////////////////////////
-/// LeastAbsolute: Least absolute error 
-/////////////////////////////
+/*************************************
+	Least absolute deviations (LeastAbsolute)
+
+	Solve min_w sum_i |Y_i - X(i,:) w|
+	
+	via linear programming (using glpk) 
+**************************************/
 function LeastAbsolute ( params) {
 	var that = new Regression ( LeastAbsolute, params);
 	return that;
@@ -537,9 +544,9 @@ LeastAbsolute.prototype.train = function (X, y) {
 	return dot(e, e); 	
 }
 
-//////////////////////////////////////////////////
-/////	K-nearest neighbors
-///////////////////////////////////////////////////
+/*********************************************
+	K-nearest neighbors
+**********************************************/
 function KNNreg ( params ) {
 	var that = new Regression ( KNNreg, params);	
 	return that;
@@ -624,9 +631,14 @@ KNNreg.prototype.predict = function ( x ) {
 		return labels[0];
 }
 
-//////////////////////////////////////
-////// Ridge regression
-////////////////////////////////////
+/***************************************
+	 Ridge regression
+	 
+	Solve min_w ||Y - X*w||^2 + lambda ||w||^2
+	
+	as w = (X'X + lambda I) \ X' Y
+	
+****************************************/
 function RidgeRegression ( params) {
 	var that = new Regression ( RidgeRegression, params);
 	return that;
@@ -702,9 +714,25 @@ function ridgeregression( X, y , lambda, affine) {
 }
 
 
-//////////////////////////////////////
-////// Kernel ridge regression
-////////////////////////////////////
+
+/***************************************
+	Kernel ridge regression 
+	 
+	Solve min_(f in RKHS) sum_i (y_i - f(x_i))^2 + lambda ||f||^2
+	
+	as f(x) = sum_i alpha_i KernelFunc(x_i , x) 
+	with alpha = (K + lambda I) \ Y
+	where K = kernelMatrix(X)
+	
+	implemented with 
+	- QR solver for small problems (Y.length<=500)
+	- conjugate gradient solver (solvecg) for large problems
+	- sparse conjugate gradient solver (spsolvecg) for large and sparse K 
+	
+	Use efficient updates of K for tuning the kernel function
+	(see kernelMatrixUpdate() in kernels.js)	
+	
+****************************************/
 function KernelRidgeRegression ( params) {
 	var that = new Regression ( KernelRidgeRegression, params);
 	return that;
@@ -1130,9 +1158,11 @@ KernelRidgeRegression.prototype.predict = function (X) {
 	return y;
 }
 
-//////////////////////////////////////////////////
-/////		support vector regression (SVR)
-///////////////////////////////////////////////////
+/****************************************************
+		Support vector regression (SVR)
+		
+	training by SMO as implemented in LibSVM
+*****************************************************/
 function SVR ( params) {
 	var that = new Regression ( SVR, params);
 	return that;
@@ -1527,9 +1557,16 @@ SVR.prototype.predict = function ( x ) {
 }
 
 
-////////////////////////////////////////////
-///  LASSO 
-//////////////////////////////////////////
+/****************************************************
+	  LASSO 
+	  
+	 Solves min_w ||Y - X*w||^2 + lambda ||w||_1
+	 
+	Training by Soft-thresholding for orthonormal X 
+	or coordinate descent as in 
+	T.T. Wu and K. Lange, Annals of Applied Statistics, 2008
+	
+*****************************************************/
 
 function LASSO ( params) {
 	var that = new Regression ( LASSO, params);
@@ -1663,9 +1700,15 @@ LASSO.prototype.tune = function (X,y,Xv,yv) {
 }
 
 
-//////////////////////////////
-// LARS
-/////////////////////////////
+/**************************************
+	 LARS
+	 
+	Compute entire regularization path
+	for lars or lasso (parameter = { method: "lars" or "lasso"})
+	
+	use efficient Cholesky updates when adding/removing variables.	
+	
+***************************************/
 function LARS ( params) {
 	var that = new Regression ( LARS, params);
 	return that;
@@ -2027,9 +2070,20 @@ function lars (X,Y, method, n) {
 	}
 }
 
-//////////////////////////////
-/// OLS: Orthogonal Least Squares
-/////////////////////////////
+/***********************************
+	Orthogonal Least Squares (OLS) 
+	
+	(also known as greedy approach to compresed sensing, 
+	forward stagewise regression, modification of OMP... ) 
+	
+	Find a sparse solution to X*w = y by starting with w=0
+	
+	Then, at each step, select the index k of the variable that minimizes 
+	min_w || Y - X_k w||
+	where X_k is made of the subset of columns of X previously selected
+	plus the kth column. 
+		
+************************************/
 function OLS ( params) {
 	var that = new Regression ( OLS, params);
 	return that;
@@ -2163,7 +2217,7 @@ OLS.prototype.train = function (X, y) {
 }
 
 //////////////////////////////////////////////////
-/////	MLPreg: Multi-Layer Perceptron for regression
+/////	Multi-Layer Perceptron for regression (MLPreg)
 ///////////////////////////////////////////////////
 function MLPreg ( params) {
 	var that = new Regression ( MLPreg, params);
@@ -2364,9 +2418,16 @@ MLPreg.prototype.predict = function( x_unnormalized ) {
 		return "undefined";
 }
 
-/////////////////////////////////////////////////////////
-////////// Switching Regression
-/////////////////////////////////////////////////////////
+/************************************************
+	Generic class for Switching Regression
+	
+	i.e., problems with multiple models that must be 
+	estimated simultaneously: we assume that 
+	
+	 y_i = x_i'w_j + noise
+
+	with unknown j. 	
+*************************************************/
 
 
 function SwitchingRegression (algorithm, params ) {
@@ -2569,9 +2630,12 @@ SwitchingRegression.prototype.info = function () {
 	str += "}";
 	return str;
 }
-//////////////////////////////////////
-////// K-LinReg
-////////////////////////////////////
+/**********************************
+	 K-LinReg
+
+	algorithm for switching regression from
+	Lauer, Nonlinear Analysis: Hybrid System, 2013.
+***********************************/
 function kLinReg ( params) {
 	var that = new SwitchingRegression ( kLinReg, params);
 	return that;

@@ -1432,9 +1432,16 @@ MLP.prototype.predictscore = function( x_unnormalized ) {
 	}
 }
 
-//////////////////////////////////////////////////
-/////		SVM
-///////////////////////////////////////////////////
+/***************************************************
+		Support Vector Machine (SVM)
+		
+	Training by SMO as implemented in LibSVM
+	or as in LibLinear for linear classification
+
+	Efficient use and updates of kernel cache 
+	for cross-validation and tuning of kernel parameters
+	
+****************************************************/
 function SVM ( params) {
 	var that = new Classifier ( SVM, params);
 	return that;
@@ -1469,7 +1476,7 @@ SVM.prototype.construct = function (params) {
 		case "Gaussian":
 		case "RBF":
 		case "rbf": 
-			// use multiples powers of 1/sqrt(2) for sigma => efficient kernel updates by squaring
+			// use multiple powers of 1/sqrt(2) for sigma => efficient kernel updates by squaring
 			this.parameterGrid = { "kernelpar": pow(1/Math.sqrt(2), range(-1,9)), "C" : [ 0.1, 1, 5, 10, 50] };
 			break;
 			
@@ -1490,7 +1497,7 @@ SVM.prototype.tune = function ( X, labels, Xv, labelsv ) {
 	/* Fast implementation uses the same kernel cache for all values of C 
 		and kernel updates when changing the kernelpar.
 		
-		We aslo use alpha seeding when increasing C.
+		We also use alpha seeding when increasing C.
 	*/
 	
 	// Set the kernelpar range with the dimension
@@ -2528,9 +2535,18 @@ svm.train(m.Xtrain[0:100,:], m.Ytrain[0:100])
 	return {"SVindexes": SVindexes, "SVlabels": SVlabels, "SV": SV, "alpha": alpha, "b": b, "dim_input":  w.length, "w": w};
 }
 
-//////////////////////////////////////////////////
-/////		MSVM
-///////////////////////////////////////////////////
+/*************************************************
+		Multi-Class Support Vector Machine (MSVM)
+		
+	3 variants (MSVMtype) are implemented:
+		- Crammer & Singer (CS)
+		- Weston & Watkins (WW)
+		- Lee, Lin and Wahba (LLW)
+		
+	Training by Frank-Wolfe algorithm 
+	as implemented in MSVMpack
+	
+**************************************************/
 function MSVM ( params) {
 	var that = new Classifier ( MSVM, params);
 	return that;
@@ -3918,9 +3934,21 @@ MSVM.prototype.predictscore = function( x ) {
 	}
 }
 
-//////////////////////////////////////////////////
-/////	K-nearest neighbors
-///////////////////////////////////////////////////
+/**************************************************
+	K-nearest neighbors (KNN)
+	
+	Fast implementation using:
+	- partial distances 
+	(stop summing terms when distance is already greater than farthest neighbor)
+	- Features (entries of x) order in decrasing order of variance
+	(to try to make partial distances more beneficial)
+	- Fast Leave-one-out (LOO): on a training point,
+		prediction with K+1 neighbors without taking the nearest one into account
+		gives the LOO prediction at that point; so no need to change the training set
+	- Fast tuning of K: one prediction on X with K neighbors gives all information about
+		k<K nearest neighbors (distances are only computed once for all k) 		
+			
+***************************************************/
 function KNN ( params ) {
 	var that = new Classifier ( KNN, params);	
 	return that;
@@ -4491,9 +4519,14 @@ KNN.prototype.tune = function ( X, labels, Xv, labelsv ) {
 
 
 
-//////////////////////////////////////////////////
-/////		Naive Bayes classifier
-///////////////////////////////////////////////////
+/*************************************************
+		Naive Bayes classifier
+		
+	- for any product distribution
+	- but mostly for Gaussian and Bernoulli
+	- use smoothing for parameters of Bernoulli distribution
+		
+**************************************************/
 
 function NaiveBayes ( params ) {
 	var that = new Classifier ( NaiveBayes, params);	
@@ -4666,9 +4699,11 @@ NaiveBayes.prototype.predictscore = function( x ) {
 }
 
 
-//////////////////////////////////////////////////
-/////		Decision Trees
-///////////////////////////////////////////////////
+/**************************************************
+		Decision Trees
+		
+		- with error rate criterion
+***************************************************/
 
 function DecisionTree ( params ) {
 	var that = new Classifier ( DecisionTree, params);	
@@ -4841,11 +4876,17 @@ DecisionTree.prototype.predict = function ( x ) {
 }
 
 
-//////////////////////////////////////////////////
-/////		Logistic Regression (LogReg)
-/////
-/////  by Pedro Ernesto Garcia Rodriguez, 2014-2015
-///////////////////////////////////////////////////
+/**************************************************
+		Logistic Regression (LogReg)
+	
+ 	  by Pedro Ernesto Garcia Rodriguez, 2014-2015
+ 	  
+ 	  Training algorithm can be 
+ 	  	- Newton-Raphson (default)
+ 	  	- stochastic gradient ascent
+ 	  	- deterministic gradient ascent
+
+***************************************************/
 
 function LogReg ( params ) {
 	var that = new Classifier ( LogReg, params);	
