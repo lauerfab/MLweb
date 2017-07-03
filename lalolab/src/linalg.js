@@ -6543,12 +6543,10 @@ eig_bisect(A,3)
 	return {U: U, V: lambda};
 }
 
-function bidiagonalize( A, storeUV ) {
+
+function bidiagonalize( A, computeU, thinU , computeV ) {
 	// B = U' A V , where B is upper bidiagonal
-/*
-A=[ [-149,-50,-154],[537,180,546],[-27,-9,-25]]
-b=bidiagonalize(A,true)
-*/
+
 	var j;
 	const m = A.length;
 	const n = A.n;
@@ -6557,8 +6555,17 @@ b=bidiagonalize(A,true)
 	
 	var householder; 
 	
-	if ( storeUV ) {
-		var U = eye(m);
+	if ( computeU ) {
+		if ( thinU ) {
+			var U = eye(m,n);
+			var nU = n;						
+		}
+		else {
+			var U = eye(m);
+			var nU = m;
+		}
+	}
+	if ( computeV ) {
 		var V = eye(n);		
 	}
 	
@@ -6603,41 +6610,29 @@ b=bidiagonalize(A,true)
 			}
 		}
 	};
-	var updateU = function (j, v, beta) {
-		//smallU = get ( U, range(j,m), range(0, m));
-		//set (U , range(j,m), range(0,m), sub ( smallU , outerprod ( householder.v, mul(transpose(smallU), householder.v), householder.beta) ) );
-		var i,k;
-		var Utv = zeros(m);
-		for ( i=j; i<m; i++) {
-			var Ui = i*m;
-			var i_j = i-j;
-			for ( k=0;k<m; k++) 
-				Utv[k] += v[i_j] * U.val[Ui + k];
-		}
-		for ( i=j; i < m; i++) {
-			var betavk = beta * v[i-j];
-			var Ui = i*m;		
-			for ( k=0; k < m ; k++) {
-				U.val[Ui + k] -= betavk * Utv[k];
+	
+	if ( computeV ) {
+		var updateV = function (j, v, beta) {
+			//smallV = get ( V, range(0,n), range(j+1, n));
+			//set ( V, range(0,n), range(j+1,n) , sub( smallV, outerprod( mul(smallV, householder.v), householder.v, householder.beta) ) );	
+			var i,k;	
+			var n_j_1 = n-j-1;
+			for ( i=0; i < n; i++) {
+				var Vi = i*n + j + 1;
+				var Vv = 0;
+				for ( k=0;k<n_j_1; k++) 
+					Vv += V.val[Vi + k] *  v[k] ;
+				var betaVvk = beta * Vv;
+				for ( k=0; k < n_j_1 ; k++) {
+					V.val[Vi + k] -= betaVvk * v[k];
+				}
 			}
-		}
-	};
-	var updateV = function (j, v, beta) {
-		//smallV = get ( V, range(0,n), range(j+1, n));
-		//set ( V, range(0,n), range(j+1,n) , sub( smallV, outerprod( mul(smallV, householder.v), householder.v, householder.beta) ) );	
-		var i,k;	
-		var n_j_1 = n-j-1;
-		for ( i=0; i < n; i++) {
-			var Vi = i*n + j + 1;
-			var Vv = 0;
-			for ( k=0;k<n_j_1; k++) 
-				Vv += V.val[Vi + k] *  v[k] ;
-			var betaVvk = beta * Vv;
-			for ( k=0; k < n_j_1 ; k++) {
-				V.val[Vi + k] -= betaVvk * v[k];
-			}
-		}
-	};
+		};
+	}
+	if ( computeU ) {
+		var hv=new Array(n);// Householder vectors and betas
+		var hb=new Array(n);
+	}
 	
 	for (j=0; j < n ; j++) {
 				
@@ -6646,8 +6641,10 @@ b=bidiagonalize(A,true)
 			
 			updateB1(j, householder.v, householder.beta);
 			
-			if ( storeUV ) {				
-				updateU(j, householder.v, householder.beta);
+			if ( computeU ) {				
+				hv[j] = vectorCopy(householder.v);
+				hb[j] = householder.beta;
+				//	updateU(j, householder.v, householder.beta);
 			}
 		}
 				
@@ -6656,15 +6653,52 @@ b=bidiagonalize(A,true)
 			
 			updateB2(j, householder.v, householder.beta);
 			
-			if( storeUV) {
+			if( computeV ) {
 				updateV(j, householder.v, householder.beta);
 			
 			}	
 		}		
 	}
-	if ( storeUV) {
-		return { "U" : U, "V": V, "B": B};	// U transposed is returned
+	if (computeU) {		
+		// Back accumulation of U (works with less than m columns)
+		// Un_1 = (I-beta v v')Un = Un - beta v (v' Un)
+
+		/*for (j=n-1;j>=0; j--) {
+			if (j<m-1){
+				smallU = get(U,range(j,m),[]);
+				set(U,range(j,m),[], sub(smallU, mul(bv[j],mul(hv[j], mul(transpose(hv[j]) , smallU)))));
+			}
+		}*/
+		var updateU = function (j, v, beta) {			
+			var i,k;
+			var vtU = zeros(nU);
+			for ( i=j; i<m; i++) {
+				var Ui = i*nU;
+				var i_j = i-j;
+				for ( k=0;k<nU; k++) 
+					vtU[k] += v[i_j] * U.val[Ui + k];
+			}
+			for ( i=j; i < m; i++) {
+				var betavk = beta * v[i-j];
+				var Ui = i*nU;		
+				for ( k=0; k < nU ; k++) {
+					U.val[Ui + k] -= betavk * vtU[k];
+				}
+			}
+		};
+		var nj = Math.min(n-1,m-2);
+		for (j=nj;j>=0; j--) {
+				updateU(j,hv[j], hb[j]);
+		}
 	}
+
+	if ( computeU && computeV ) {
+		return { "U" : U, "V": V, "B": B};	 
+	}
+	else if (computeV )
+		return { "V": V, "B": B};
+	else if (computeU)
+		return { "U" : U, "B": B};	 
 	else
 		return B;
 }
@@ -6785,19 +6819,16 @@ should return [ 817.7597, 2.4750, 0.0030]
 		}
 		var UBV;		
 		if ( Atransposed ) {
-			UBV = bidiagonalize( At, true );
 			var tmp = computeU;
 			computeU = computeV;
 			computeV = tmp;
+			UBV = bidiagonalize( At, computeU, thinU, computeV );
 		}
 		else
-			UBV =  bidiagonalize( A, true );
+			UBV =  bidiagonalize( A, computeU, thinU, computeV );
 
 		if ( computeU ) {
-			if ( thinU )
-				var U = getRows(UBV.U, range(0,n));//Utrans
-			else
-				var U = UBV.U;//Utrans
+			var U = transpose(UBV.U);//Utrans
 		}
 		else
 			var U = undefined;
@@ -6808,14 +6839,14 @@ should return [ 817.7597, 2.4750, 0.0030]
 		}
 		else
 			var V = undefined;
-		
+
 		var B = UBV.B;
 	}
 	else {
 		if ( Atransposed ) 
-			var B = bidiagonalize( At );
+			var B = bidiagonalize( At, false, false, false );
 		else
-			var B = bidiagonalize( matrixCopy(A) );
+			var B = bidiagonalize( matrixCopy(A), false, false, false );
 	}
 
 	var B22;
@@ -6826,7 +6857,7 @@ should return [ 817.7597, 2.4750, 0.0030]
 	var q;
 	var p;
 	var k;
-	
+
 	const TOL = 1e-11;
 	
 	do {
@@ -6910,7 +6941,6 @@ should return [ 817.7597, 2.4750, 0.0030]
 				set ( B , range(p , n - q ) , range (p , n-q ), B22  );			
 			}		
 		}
-
 	} while ( q < n ) ;
 
 	if (computeUV ) {
