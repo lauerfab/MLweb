@@ -350,7 +350,7 @@ function ltsa( X , dim, K ) {
 
         // Compute dim largest eigenvalues of Xi Xi'
 		if (usesvd) 
-    	    U = getCols(svd(Xi, "U").U, range(dim));
+    	    U = getCols(svd(Xi, "thinU").U, range(dim));
 	    else 
 	        U = eigs(mulMatrixMatrix(Xi,transposeMatrix(Xi)) , dim);
         

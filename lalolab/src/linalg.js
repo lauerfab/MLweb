@@ -6776,6 +6776,7 @@ function GolubKahanSVDstep ( B, computeUV ) {
 	if ( computeUV) 
 		return {csU: csU, csV: csV};
 }
+
 function svd( A , computeUV ) {
 /* TEST:
 A=[ [-149,-50,-154],[537,180,546],[-27,-9,-25]]
@@ -6799,12 +6800,12 @@ should return [ 817.7597, 2.4750, 0.0030]
 	var thinU = false;
 	if ( typeof( computeUV) != "undefined" && computeUV!==false)  {
 	
-		if ( computeUV === true || computeUV === "full" ) {
+		if ( computeUV === "full" ) {
 			computeU = true; 
 			computeV = true;
 			thinU = false;
 		}
-		else if ( computeUV === "thin" ) {
+		else if (computeUV === true || computeUV === "thin" ) {
 			computeU = true; 
 			computeV = true;
 			thinU = true;
@@ -6921,7 +6922,9 @@ should return [ 817.7597, 2.4750, 0.0030]
 				
 			}
 			else {
-				B22 = get ( B, range(p , n - q ) , range (p , n-q ) );			
+				B22 = get ( B, range(p , n - q ) , range (p , n-q ) );	
+				// XXX: we should avoid creating B22 at every step... for that we need GolubKahanSVDstep to use dedicated postmulGivens that do not apply to the whole column...
+				
 				if ( computeUV ) {
 					// UBV = GolubKahanSVDstep( B22, true ) ;
 					// set ( U, range(p,n-q), [], mul(UBV.U, get(U, range(p,n-q), []) ) );
