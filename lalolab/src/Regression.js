@@ -427,7 +427,15 @@ AutoReg.prototype.predict = function ( X ) {
 	 Least Squares
 	 
 	 implemented by w = X \ y 
-	 (QR factorization, unless X is square)
+	 	(QR factorization, unless X is square)
+	 or w = cgnr(X,y) for large dimensions (>= 200)
+	 	(conjugate gradient normal equation residual method
+	 		that can also benefit from sparse X )
+	 
+	 * Note: for affine regression with sparse X,
+	 		 it is faster to provide an X with a column of ones
+	 		 (otherwise it is expadned to a full matrix and remade sparse)
+	 		 
 ***************************************/
 function LeastSquares ( params) {
 	var that = new Regression ( LeastSquares, params);
@@ -453,13 +461,21 @@ LeastSquares.prototype.train = function (X, y) {
 	//					  and return the training error.
 		
 	var Xreg;
-	if ( this.affine) 
-		Xreg = mat([X, ones(X.length)]);
+	if ( this.affine) {
+		var tX = type(X);
+		if (tX == "spmatrix" || tX == "spvector" )
+			Xreg = sparse(mat([full(X), ones(X.length)]));
+		else
+			Xreg = mat([X, ones(X.length)]);
+	}
 	else
 		Xreg = X;
 	
 	// w = (X'X)^-1 X' y (or QR solution if rank-defficient)
-	var w = solve( Xreg, y);
+	if ( Xreg.m < Xreg.n || Xreg.n < 200 )
+		var w = solve( Xreg, y);
+	else
+		var w = cgnr( Xreg, y);
 
 	if ( this.affine ) {
 		this.w = get(w, range(w.length-1));
@@ -638,6 +654,12 @@ KNNreg.prototype.predict = function ( x ) {
 	
 	as w = (X'X + lambda I) \ X' Y
 	
+	actually implemented by the conjugate gradient method:
+		solvecg (X'X + lambda I , X'Y)
+		
+		so X'X + lambdaI should be positive-definite
+			(always possible with lambda large enough)
+	
 ****************************************/
 function RidgeRegression ( params) {
 	var that = new Regression ( RidgeRegression, params);
@@ -703,11 +725,13 @@ function ridgeregression( X, y , lambda, affine) {
 		var Xt = transposeMatrix(Xreg);	
 		var A = mulMatrixMatrix(Xt, Xreg);
 		var n = Xreg.n;
-		for ( var i=0; i < Xreg.length; i++)
-			A.val[i*(n+1)] += lambda;
+		var nn = n*n;
+		var n1 = n+1;
+		for ( var i=0; i < nn; i+=n1)
+			A.val[i] += lambda;
 	
 		// solve Aw = X' y
-		var w = solve( A, mulMatrixVector(Xt, y) );
+		var w = solvecg( A, mulMatrixVector(Xt, y) );
 	}
 	
 	return w;
