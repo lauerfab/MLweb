@@ -59,7 +59,7 @@ function help(cmd , forceshow ) {
 			}
 				
 			helpview.innerHTML = htmlhelp;
-			helpview.scrollTo(0,0);
+			helpview.scrollTop = 0;
 			
 			if ( domathjax && typeof(MathJax) != "undefined" && MathJax.isReady) {
 				helpview.focus(); 
