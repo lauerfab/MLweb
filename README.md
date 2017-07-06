@@ -31,7 +31,7 @@ Ready-to-use versions of the tools are available online at:
 
 See [this benchmark](http://mlweb.loria.fr/benchmark/) for a comparison of LALOLib with other linear algebra javascript libraries.
 
-## Machine learning capabilities provided by ML.js
+## Machine learning capabilities provided by ML.js
 
 #### Classification 
 
