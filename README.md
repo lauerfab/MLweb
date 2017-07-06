@@ -36,7 +36,7 @@ See [this benchmark](http://mlweb.loria.fr/benchmark/) for a comparison of LALOL
 #### Classification 
 
 - K-nearest neighbors,
-- Linear discriminant/quadratic analysis,
+- Linear/quadratic discriminant analysis,
 - Naive Bayes classifier,
 - Logistic regression,
 - Perceptron,
