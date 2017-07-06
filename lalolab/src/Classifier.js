@@ -2140,8 +2140,7 @@ SVM.prototype.trainMulticlass = function ( X, y, kc) {
 					indexes[k].push(i);
 			}
 		}
-
-
+		
 		j = 0; // index of binary classifier
 		for ( k = 0; k < Nclasses-1; k++) {
 			for ( l = k+1; l < Nclasses; l++) {
@@ -2150,7 +2149,6 @@ SVM.prototype.trainMulticlass = function ( X, y, kc) {
 				Xkl = get(X, indexes[k].concat(indexes[l]), [] );		
 				ykl = ones(Xkl.length);
 				set(ykl, range(indexes[k].length, Xkl.length), -1);
-		
 				trainedparams = this.trainBinary(Xkl, ykl);	
 
 				// and store the result in an array of parameters
@@ -2268,14 +2266,15 @@ SVM.prototype.predictMulticlass = function ( x ) {
 			// multiple predictions for multiple test data
 			var i;
 			var y = new Array(x.length );
-			
+
 			if ( this.onevsone ) {
 				// one-vs-one: Majority vote
 				var kpos, kneg;
-				var votes;
+				var votes = new Uint32Array(Q);
 				var k = 0;
 				for ( i = 0; i < x.length; i++) {
-				 	votes = new Uint16Array(Q);
+				 	for ( kpos = 0; kpos < Q; kpos++)
+				 		votes[kpos] = 0;
 					for ( kpos = 0; kpos < Q -1; kpos++) {
 						for ( kneg = kpos+1; kneg < Q; kneg++) {							
 							if ( scores.val[k] >= 0 ) 
@@ -2285,6 +2284,7 @@ SVM.prototype.predictMulticlass = function ( x ) {
 							k++; 
 						}
 					}
+					
 					y[i] = 0;
 					for ( var c = 1; c < Q; c++)
 						if ( votes[c] > votes[y[i]] )
