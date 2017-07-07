@@ -976,7 +976,7 @@ function tex( x ) {
 function who() {
 	// List all variables
 	var res = "Infinity (CONSTANT)<br>";
-	var throwaway = ["MathFunctions" , "mf" , "self" , "console" , "location" , "onerror" , "onoffline" , "ononline" , "navigator" , "onclose" , "performance", "crypto", "indexedDB", "PERSISTENT", "TEMPORARY", "caches"]; 
+	var throwaway = ["MathFunctions" , "mf" , "self" , "console" , "location" , "onerror" , "onoffline" , "ononline" , "navigator" , "onclose" , "performance", "crypto", "indexedDB", "PERSISTENT", "TEMPORARY", "caches", "isSecureContext", "origin"]; 
 	for ( var i in self ) {
 		if ( typeof( self[i] ) != "function" && i.indexOf("GLP") < 0 && i.indexOf("LPX") < 0 && i.indexOf("LPF_") < 0 && i.indexOf("webkit") < 0) {
 			if ( MathFunctions.indexOf(i) >= 0 ) 
