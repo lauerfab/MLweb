@@ -1096,20 +1096,7 @@ svm.train(X,Y)
 }
 function load_mnist_images( ab , N) {
 	var bytes = new Uint8Array(ab.slice(16) ); 	// read as Ubytes and skip header
-	return new Matrix(N, 28*28, bytes); //, true);
-	/*
-	var floats = new Float64Array(bytes);
-	
-	var i;
-	var dim = 28*28;
-	var mnist = new Array(N); 
-	var p = 0; 
-	for ( i=0; i < N; i++) {
-		mnist[i] = floats.subarray( p, p + dim);
-		p += dim;			
-	}
-	return mnist;
-	*/
+	return new Matrix(N, 28*28, bytes); //, true);	
 }
 function load_mnist_labels( ab , N) {
 
