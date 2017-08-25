@@ -94,6 +94,10 @@ HELPcontent["orth"] = ["Basics", "Range of a matrix","orth(X)","Compute an ortho
 HELPcontent["apply"] = ["Basics", "Apply a function entrywise","Y = apply(f, X)","Return a __matrix/__vector Y of the same size as X with entries Y[i,j] = f( X[i,j] ). "];
 HELPcontent["math functions"] = ["Basics", "Basic math functions","Y = f( X )","Return a __matrix/__vector Y of the same size as X with entries Y[i,j] = f( X[i,j] ) where f is any of the following basic math functions:<br>abs, acos, asin, atan, atan2, ceil, cos, exp, floor, log, round, sign, sin, sqrt, log10, log2, cosh, sinh, tanh, acosh, asinh, atanh."];
 
+// in-place operations
+HELPcontent["saxpy"] = ["Basics", "saxpy","saxpy(a,x,y)","Perform the in-place operation y = y + a * x with two __vectors x and y and a scalar a. This can be more efficient inside loops (see <a href='lalolibefficient.html#garbage'>this page</a>)."];
+HELPcontent["gaxpy"] = ["Basics", "gaxpy","gaxpy(A,x,y)","Perform the in-place operation y = y + A * x with two __vectors x and y and a __matrix A. This can be more efficient inside loops (see <a href='lalolibefficient.html#garbage'>this page</a>)."];
+
 // Complex numbers
 HELPcontent["<strong>Complex</strong>"] = ["Basics", "Complex numbers","z = new Complex()\nz = new Complex( a, b)\nz = new Complex( r, theta, true)\nz2 = new Complex( z1 )","Return the complex number z = 0, z = a + ib, z = r exp(i theta) or z2 = z1.<br><br>Every Complex z has a real part stored in z.re and an imaginary part stored in z.im. ", ["z = new Complex(2,3) // z = 2 + 3i", "z = new Complex()  // z = 0 + 0i\nz.re = 2  // z = 2 + 0i\nz.im = 3  // z = 2 + 3i"]]; 
 HELPcontent["I (Complex_I)"] = ["Basics", "Imaginary unit","I\nComplex_I","Constant equal to the imaginary unit such that I * I = -1.\nThis can be used to easily create complex numbers as<br>a + I*b.", ["z = I * I // returns -1 (as a complex)\n", "z = 1 + 2*I // same as new Complex(1,2)"]];

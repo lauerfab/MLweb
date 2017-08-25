@@ -349,6 +349,14 @@ function matrixCopy( A ) {
 function vectorCopy( a ) {
 	return new Float64Array( a );
 }
+/** Vector copy into another existing vector ( y = x )
+ * (saves memory allocation)
+ * @param {Float64Array}
+ * @param {Float64Array}
+ */
+function vectorCopyInto (x, y) {
+	y.set(x); 
+}
 
 /**
  * @param {Array}
@@ -2103,6 +2111,20 @@ function saxpy ( a, x, y) {
 	const n = y.length;
 	for ( var i=0; i < n; i++) 
 		y[i] += a*x[i];
+}
+/** GAXPY : y = y + Ax
+ * @param {Matrix}
+ * @param {Float64Array}
+ * @param {Float64Array}
+ */
+function gaxpy ( A, x, y) {
+	const m = A.m;
+	const n = A.n;
+	var r = 0;
+	for ( var i=0; i < m; i++) {
+		y[i] += dot(A.val.subarray(r, r + n),x);
+		r += n;
+	}
 }
 
 /**

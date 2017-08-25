@@ -308,13 +308,57 @@ In this example, m+1 objects are created versus a single one when using A = zero
 Another common mistake is to create global variables for temporary use. Any variable used temporarily in a function should be a local one in order to be freed from memory when the function returns. Remember that in javascript, local variables are declared with the keyword <i>var</i>. Undeclared variables are always global. 
 </p>
 
+<h4>Use in-place (saxpy/gaxpy) operations</h4>
+
+<p>
+All basic linear algebra functions in LALOLib create a new Vector/Matrix to store their result, which makes them easy to use and matlab-like. However, inside a loop this can generate a lot of unnecessary memory allocations for temporary variables. 
+</p>
+<p>
+Consider for instance the following iterations of <tt>y = y + a x</tt> with vectors <tt>x</tt>, <tt>y</tt> and scalar <tt>a</tt>: 
+<pre>
+for (i=0; i < n; i++) {
+    y = addVectors(y, mulScalarVector(a, x));
+}
+</pre>
+At every iteration, a new vector is created to store the result of mulScalarVector and another one for the result of addVectors. Furthermore, these two get collected as garbage in the next iteration. Instead, it is more efficient to use the in-place operation for <tt>y = y + a x</tt> (<i>saxpy</i>):
+<pre>
+for (i=0; i < n; i++) {
+    saxpy(a, x, y);
+}
+</pre>
+</p>
+<p>
+Similarly, the <i>gaxpy</i> function provides the in-place operation for computing <tt>y = y + A x</tt> with vectors <tt>x</tt>, <tt>y</tt> and a Matrix <tt>A</tt> as <tt>gaxpy(A,x,y)</tt>.
+</p>
+
+<h4>Copy vectors or matrices content only</h4>
+
+<p>
+Consider a loop in which a vector <tt>y</tt> is initialized to <tt>x</tt> before doing some work:
+<pre>
+for (i=0; i < n; i++) {
+    y = vectorCopy(x);
+    ... work on y ... 
+}
+</pre>
+The <i>vectorCopy</i> function actually creates an new Object at each iteration, which becomes garbage at the next one. A more efficient approach is to create a single vector before the loop and only copy the content of <tt>x</tt> into <tt>y</tt>:
+<pre>
+y = zeros(x.length);
+for (i=0; i < n; i++) {
+    y.set(x);    // or vectorCopyInto(x,y)
+    ... work on y ... 
+}
+</pre>
+</p>
+
+
 <h2 id="optimizers">Write compiler-friendly javascript code</h2>
 
 A number of constructs should be avoided in order not to prevent code optimization performed by the compiler embedded in the browser: use the following checklist.
 <ul>
 <li>Write (and use) typed functions with arguments and returning value of fixed typed:<br>if an argument to a function can be of different types, the function will probably not be optimized. If you need to write such a function, defer all significant computations to subfunctions dedicated to the various types. </li>
 <li>Write small (typed) functions for computational intensive subtasks: these will probably be better optimized.</li>
-<li>Write loops over Arrays with explicit indexing instead of for (i in a) {...}.</li>
+<li>Write loops over Arrays with explicit indexing instead of <tt>for (i in a) {...}</tt>.</li>
 <li>Do not modify the structure of objects:<br>Adding fields to a matrix object (like for instance A.singularvalues = svd(A) ) changes the internal type of the matrix and makes functions of that matrix execute with non-optimized code.</li>
 <li>Do not use <i>try... catch</i> statements.</li>
 <!--<li>Write small functions for repetitive tasks:<br>Javascript code gets optimized at the first execution.</li>-->
