@@ -350,7 +350,12 @@ for (i=0; i < n; i++) {
 }
 </pre>
 </p>
-
+<p>
+For matrices, the content of <tt>X</tt> can be copied into <tt>Y</tt> without additional memory allocations with 
+<pre>
+Y.val.set(X.val);
+</pre>
+</p>
 
 <h2 id="optimizers">Write compiler-friendly javascript code</h2>
 
