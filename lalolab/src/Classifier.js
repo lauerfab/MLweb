@@ -336,6 +336,10 @@ Classifier.prototype.cv = function ( X, labels, nFolds) {
 	return mean(errors);	
 }
 
+Classifier.prototype.loo = function ( X, labels) {
+	return this.cv(X, labels, labels.length);
+}
+
 Classifier.prototype.checkLabels = function ( labels, binary01 ) {
 	// Make list of labels and return corresponding numerical labels for training
 	

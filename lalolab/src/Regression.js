@@ -270,6 +270,10 @@ Regression.prototype.cv = function ( X, labels, nFolds) {
 	return {mse: mean(errors), fit: mean(fits)};	
 }
 
+Regression.prototype.loo = function ( X, labels) {
+	return this.cv(X, labels, labels.length);
+}
+
 Regression.prototype.info = function () {
 	// Print information about the model
 	
