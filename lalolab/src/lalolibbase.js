@@ -1369,7 +1369,7 @@ Lalolab.prototype.do = function ( cmd , callback ) {
 	this.worker.postMessage( {cmd: cmd, parse: true} );	 
 }
 Lalolab.prototype.exec = function ( cmd , callback ) {
-	// prepare callback, parse cmd and execute in worker
+	// prepare callback, and execute cmd in worker
 	this.callbacks.push( callback ); 
 	this.worker.postMessage( {cmd: cmd, parse: false} );	
 }
