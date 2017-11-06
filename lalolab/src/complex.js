@@ -124,8 +124,11 @@ function expComplex(z) {
 function ComplexVector(a, b, dontcopy) {
 	/** @const */ this.type = "ComplexVector";
 	
-	
-	if ( a instanceof ComplexVector) {
+	if ( arguments.length == 0 ) {
+		// dummy call, probably in renewObject 
+		// while loading data from a file
+	}
+	else if ( a instanceof ComplexVector) {
 		/** @const */ this.length = a.length;
 		this.re = vectorCopy(a.re);
 		this.im = vectorCopy(a.im);
@@ -158,7 +161,11 @@ function ComplexVector(a, b, dontcopy) {
 function ComplexMatrix(a, b, values, valuesimag) {
 	/** @const */ this.type = "ComplexMatrix";
 		
-	if ( a instanceof ComplexMatrix) {
+	if ( arguments.length == 0 ) {
+		// dummy call, probably in renewObject 
+		// while loading data from a file
+	}
+	else if ( a instanceof ComplexMatrix) {
 		/** @const */ this.length = a.length;
 		/** @const */ this.m = a.m;
 		/** @const */ this.n = a.n;
