@@ -44,19 +44,19 @@ a part of the <a href="http://mlweb.loria.fr" target="_blank">MLweb project</a>
 </p>
 <div class="topbuttonsdiv" style="position:absolute;top: 53px;left: 10px;width: 120px;" title="Load a CSV file in the matrix 'data': an ASCII text file with one matrix row per line and columns separated by either spaces or commas.">
 	<input id="datafile" type="file" onchange="loadTextFile();" class="hiddenfilebtn" />
-	<label for="datafile" id="lbldatafile"  title="Load a CSV file in the matrix 'data': an ASCII text file with one matrix row per line and columns separated by either spaces or commas.">Load a data file</label>
+	<label for="datafile" id="lbldatafile"  title="Load a CSV file in the matrix 'data': an ASCII text file with one matrix row per line and columns separated by either spaces or commas. You can also drag-and-drop the file in the output panel below.">Load a data file</label>
 </div>
 <div class="topbuttonsdiv" style="position:absolute;top: 53px;left: 160px;width: 100px;" title="Load a script from a text file.">
 	<input id="scriptfile" type="file" onchange="loadScript();" class="hiddenfilebtn" />
 	<label for="scriptfile" id="lblscriptfile"  title="Load a script from a text file.">Load a script</label>
 </div>
 <div class="topbuttonsdiv" style="position:absolute;top: 53px;left: 290px;width: 130px;">
-	<label for="saveasname" onclick="saveWorkspace( );">Save workspace</label>  
+	<label for="saveasname" onclick="saveWorkspace( );" title='Save the workspace in a downloadable file. Use save("varName1", "varName2",...) to save only some variables'>Save workspace</label>  
 </div>
 
 <div class="topbuttonsdiv" style="position:absolute;top: 53px;left: 450px;width: 140px;" title="Load variables previously saved by LALOLab.">
 	<input id="wsfile" type="file" onchange="loadWorkspace();" class="hiddenfilebtn" />
-	<label for="wsfile" id="lblwsfile"  title="Load variables previously saved by LALOLab.">Load a workspace</label>
+	<label for="wsfile" id="lblwsfile"  title="Load variables previously saved by LALOLab. You can also drag-and-drop the .zip file in the output panel below.">Load a workspace</label>
 </div>
 
 <div class="topbuttonsdiv" style="position:absolute;top: 53px;left: 620px;width: 110px;"  onclick="togglemathjax();">	
@@ -75,7 +75,7 @@ a part of the <a href="http://mlweb.loria.fr" target="_blank">MLweb project</a>
 <div style="height: 1px;">
 </div>
 <div class="container">
-<div id="output" onclick="if( textselection().length == 0 ) cmdline.focus();">
+<div id="output" onclick="if( textselection().length == 0 ) cmdline.focus();" ondragover="event.preventDefault();" ondrop="dropFile(event);" title="Output panel showing the results of your commands. Drag-and-drop files here to load data or a previously saved workspace.">
 </div>
 <br>
 <label class="inputlabel">Command line:</label>
@@ -943,6 +943,50 @@ function loadWorkspace( ) {
 function clearWorkspace( ) {
 	worker.terminate();
 	window.location.reload();
+}
+
+function dropFile(ev) {
+	ev.preventDefault(); 
+	var dt = ev.dataTransfer;
+	if (dt.items) {
+		if ( dt.items[0].kind == "file" ) {
+			var f = dt.items[0].getAsFile();
+		}		
+	}
+	else {
+		var f = dt.files[0]; 
+	}
+	
+	var reader = new FileReader();
+	
+	if ( f.name.slice(-4) == ".zip" ) {
+		// Workspace file		
+		reader.onload = function () {
+			worker.postMessage({cmd: "LOAD_WORKSPACE" , data: reader.result} );
+		}
+		reader.readAsArrayBuffer(f);
+	}
+	else {
+		// CSV / text file with matrix data
+		reader.onload = function () {
+			var yesno = confirm (" Do you really want to load this file in the variable 'data'? \n\n_____________________________\n " + reader.result.slice(0,100) + "\n..." );
+			if ( yesno ) {
+				worker.postMessage({"cmd" : "data = LOAD_DATA_FILE (" + f.name + ")" , "data" : reader.result} );
+			}
+		}
+		reader.readAsText(f);	
+	}
+
+}
+function dragend (ev){
+	var dt = ev.dataTransfer; 
+	if ( dt.items ) {
+		for ( var i=0; i< dt.items.length; i++)
+			dt.items.remove(i);
+	}
+	else {
+		ev.dataTransfer.clearData();
+	}
 }
 
 ////// load image /////// 
