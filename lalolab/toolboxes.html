@@ -2,7 +2,6 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Extending LALOLab</title>
-	<script type="application/x-javascript" src="lalolib.js"> </script>
 	<style>
 	body {
 		font-family: Verdana, Geneva, sans-serif;
@@ -42,11 +41,29 @@
 
 This page explains how to extend  <a href="index.html">LALOLab</a> with a new toolbox.
 <ol>
+<li><a href="#contrib">List of contributed toolboxes</a></li>
 <li><a href="#create">Create a toolbox</a></li>
 <li><a href="#help">Create a help file for the toolbox</a></li>
 <li><a href="#load">Load the toolbox in LALOLab</a></li>
-<li><a href="#submit">Include the toolbox in the standard LALOLab distribution</a></li>
 </ol>
+
+<h2 id="contrib">Contributed toolboxes</h2>
+
+To use one of these toolboxes, download the <tt>.js</tt> file in the <tt>toolboxes/</tt> folder of LALOLab and the <tt>-help.js</tt> file in the <tt>help/</tt> folder. Then, run <tt>make</tt> to recompile LALOLab with these functionalities. <br>
+For use inside your own web application, you can alternatively simply load the <tt>.js</tt> file as a script after <tt>ML.js</tt>. 
+
+<ul>
+	<li>Recurrent Neural Networks (RNN) by Terry Boswell : <a href="http://mlweb.loria.fr/contrib/rnn.js" download>rnn.js</a> (goes in <tt>lalolab/toolboxes/</tt>) <a href="http://mlweb.loria.fr/contrib/rnn-help.js" download>rnn-help.js</a> (goes in <tt>lalolab/help/</tt>)</li>
+</ul>
+
+<div style="font-size: 80%;">
+If you want to share your toolbox as a contributed toolbox above, include all the source code of the toolbox in a single .js file, for instance with
+<pre>
+cat file1.js file2.js ... > toolbox.js
+</pre>
+and submit this file with the help file to fabien.lauer (<i>at</i>) loria.fr
+</div>
+
 
 <h2 id="create">Create a toolbox</h2>
 
@@ -90,16 +107,6 @@ make
 </pre>
 in the <i>lalolab/</i> folder should provide access to the toolbox and its help on the next LALOLab reboot.
 
-<h2 id="submit">Include the toolbox in the standard LALOLab distribution </h2>
-
-<p>If the toolbox is well-written, numerically efficient and provides interesting new features it might be worth making it a part of the standard LALOLab distribution. </p>
-<p>
-To do so, include all the source code of the toolbox in a single .js file, for instance with
-<pre>
-cat file1.js file2.js ... > toolbox.js
-</pre>
-and submit this file with the help file to fabien.lauer (<i>at</i>) loria.fr
-</p>
 
 <br><br><br><br><br><br><br><br>
 </body>
