@@ -345,7 +345,7 @@ return {
 	Perceptron: Perceptron,
 	MLP: MLP,
 	SVM: SVM,
-	MSVM: MSVM,
+	// MSVM: MSVM, require glpk
 	KNN: KNN,
 	knnsearch: knnsearch,
 	NaiveBayes: NaiveBayes,
