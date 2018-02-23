@@ -23,6 +23,13 @@ Ready-to-use versions of the tools are available online at:
 - [http://mlweb.loria.fr/ml.js](http://mlweb.loria.fr/ml.js) for ML.js 
 - [http://mlweb.loria.fr/lalolab/](http://mlweb.loria.fr/lalolab/) for LALOLab
 
+or as modules (see the [documentation](http://mlweb.loria.fr/lalolab/lalolib.html) for details) at:
+
+- [http://mlweb.loria.fr/lalolib-module.js](http://mlweb.loria.fr/lalolib-module.js)
+- [http://mlweb.loria.fr/mljs-module.js](http://mlweb.loria.fr/mljs-module.js)
+- [http://mlweb.loria.fr/lalolib-noglpk-module.js](http://mlweb.loria.fr/lalolib-noglpk-module.js)
+- [http://mlweb.loria.fr/mljs-noglpk-module.js](http://mlweb.loria.fr/mljs-noglpk-module.js)
+
 ## Functions provided by LALOLib
 
 - **Linear algerbra:** basic vector and matrix operations, linear system solvers, matrix factorizations (QR, Cholesky), eigendecomposition, singular value decomposition, conjugate gradient sparse linear system solver, complex numbers/matrices, discrete Fourier transform... )
