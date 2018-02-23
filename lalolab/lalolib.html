@@ -137,7 +137,19 @@ or
 </pre>
 for ML.js.
 </p>
-<p> Alternatively, you can use a local copy of the library (download <a href="lalolib.zip" download>lalolib</a> or <a href="ml.zip" download>ml.js</a>) and modify the path accordingly. 
+<p> Alternatively, you can 
+<ul>
+	<li>use a local copy of the library (download <a href="../package/lalolib.zip" download>lalolib</a> or <a href="../package/ml.zip" download>ml.js</a> and modify the path accordingly in the <i>script</i> tag above);</li>
+	<li>use a <i>module</i> with <pre>&lt;script src="http://mlweb.loria.fr/module-name.js"&gt;&lt;/script&gt;</pre> from the following list and prefix all functions accordingly (e.g., use <tt>mljs.solve(A,b)</tt> instead of <tt>solve(A,b)</tt>):
+	<table cellpadding="5px">
+	<tr><th>Module name</th><th>Contents</th><th>prefix</th><th>size</th></tr>
+	<tr><td><a href="../lalolib-module.min.js">lalolib-module.min.js</a></td><td>LALOLib (without plots)</td><td><tt>lalolib.</tt></td><td>446 KB</td></tr>
+	<tr><td><a href="../mljs-module.min.js">mljs-module.min.js</a></td><td>ML.js (without plots)</td><td><tt>mljs.</tt></td><td>552 KB</td></tr>
+	<tr><td><a href="../lalolib-noglpk-module.min.js">lalolib-noglpk-module.min.js</a></td><td>LALOLib (without plots, lp, qp, minl0, minl1)</td><td><tt>lalolib.</tt></td><td>147 KB</td></tr>
+	<tr><td><a href="../mljs-noglpk-module.min.js">mljs-noglpk-module.min.js</a></td><td>ML.js (without plots, lp, qp, minl0, minl1) </td><td><tt>mljs.</tt></td><td>253 KB</td></tr>
+	</table>
+	</li>
+</ul>
 <!--<pre>
 	&lt;script src="lalolib.js"&gt;&lt;/script&gt;
 </pre>
@@ -508,7 +520,7 @@ model.tune(X, Y);
 <h2 id="apiref">Available functions / API reference</h2>
 
 <p>
-Below is the list of functions provided by LALOLib. The help shows both the script-like LALOLab syntax and the corresponding javascript calls. Examples are mostly written for <a href="index.html">LALOLab</a> and should be executed by a <a href="#safer">lab.do() statement</a> in a javascript context. 
+Below is the list of functions provided by LALOLib. The help shows both the script-like LALOLab syntax and the corresponding javascript calls. Remember that when using a module version of the library, the functions must be prefixed accordingly. Examples are mostly written for <a href="index.html">LALOLab</a> and should be executed by a <a href="#safer">lab.do() statement</a> in a javascript context. 
 </p>
 
 <div class="container">

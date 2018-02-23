@@ -6,6 +6,9 @@ lalohelp.js
 plotlib.js
 !src/plotlib.js
 
+*-module.js
+*.min.js
+
 # Excludes examples
 examples/
 

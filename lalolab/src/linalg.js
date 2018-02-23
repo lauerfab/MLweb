@@ -178,6 +178,10 @@ function array2mat( A ) {
 function array2vec( a ) {
 	return vectorCopy(a);
 }
+function vec2array( a ) {
+	return Array.apply([], a);
+}
+
 
 function size( A, sizealongdimension ) {
 	var s;
@@ -5764,7 +5768,7 @@ function qrRnotTransposed( A, compute_Q ) {
 	return {"Q" : Q, "R" : R, "V": V, "beta" : beta, "piv" : piv, "rank" : r+1 };
 }
 
-/** Conjugate gradient method for solving the symmetyric positie definite system Ax = b
+/** Conjugate gradient method for solving the symmetyric positive definite system Ax = b
  * @param{{Matrix|spMatrix}}
  * @param{Float64Array}
  * @return{Float64Array}
@@ -5776,7 +5780,7 @@ function solvecg ( A, b) {
 		return solvecgdense(A,b);		
 }
 
-/** Conjugate gradient method for solving the symmetyric positie definite system Ax = b
+/** Conjugate gradient method for solving the symmetyric positive definite system Ax = b
  * @param{Matrix}
  * @param{Float64Array}
  * @return{Float64Array}

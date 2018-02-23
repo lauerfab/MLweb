@@ -462,7 +462,8 @@ function colorplot(multiargs) {
 	var plotid = "LALOLibPlot" + LALOLibPlotsIndex;
 	var legendwidth = 50;
 	
-	LALOLibOutput.innerHTML += "<br><div style='position:relative;left:0px;top:0px;text-align:left;'> <div><a onmousemove='mouseposition(event," + LALOLibPlotsIndex + ");' onmousedown='mousestartmove(event," + LALOLibPlotsIndex + ");' onmouseup='mousestopmove(event);' onmouseleave='mousestopmove(event);' ondblclick='zoomoriginal(" + LALOLibPlotsIndex + ");'><canvas id='" +plotid + "'  width='500' height='500' style='border: 1px solid black;'></canvas></a></div> <label id='lblposition" + LALOLibPlotsIndex + "'></label> <div style='position: absolute;left: 550px;top: -1em;'> <canvas id='legend" + LALOLibPlotsIndex + "' width='" + legendwidth + "' height='500'></canvas></div> <div id='legendtxt" + LALOLibPlotsIndex + "' style='position: absolute;left: 610px;top: 0;'></div> </div>";
+	
+	LALOLibOutput.innerHTML += "<br><div style='position:relative;left:0px;top:0px;text-align:left;'> <div><a onmousemove='mouseposition(event," + LALOLibPlotsIndex + ");' onmousedown='mousestartmove(event," + LALOLibPlotsIndex + ");' onmouseup='mousestopmove(event);' onmouseleave='mousestopmove(event);' ondblclick='zoomoriginal(" + LALOLibPlotsIndex + ");'><canvas id='" +plotid + "'  width='500' height='500' style='border: 1px solid black;'></canvas></a></div> <label id='lblposition" + LALOLibPlotsIndex + "'></label> <div style='position: absolute;left: 550px;top: -1em;'><label id='legendmaxZ" + LALOLibPlotsIndex + "' style='font-family:verdana;font-size:80%;'></label><br>  <canvas id='legend" + LALOLibPlotsIndex + "' width='" + legendwidth + "' height='500'></canvas><br><label id='legendminZ" + LALOLibPlotsIndex + "' style='font-family:verdana;font-size:80%;'></label></div> <div id='legendtxt" + LALOLibPlotsIndex + "' style='position: absolute;left: 610px;top: 0;'></div> </div>";
 	
 	LALOLibPlots[LALOLibPlotsIndex] = new ColorPlot(plotid) ;
 	LALOLibPlots[LALOLibPlotsIndex].setScale(plotinfo.minX, plotinfo.maxX, plotinfo.minY, plotinfo.maxY,plotinfo.minZ, plotinfo.maxZ); 
@@ -477,19 +478,27 @@ function colorplot(multiargs) {
 //	plotlegend.innerHTML += plotinfo.maxZ.toFixed(3) + "<br><canvas id='legend'  width='" + legendwidth + "' height='500'></canvas><br>" + plotinfo.minZ.toFixed(3);
 	var ctx = document.getElementById("legend" +LALOLibPlotsIndex).getContext("2d");
 
+	var legendcanvas = document.getElementById("legend"+LALOLibPlotsIndex);
+	if ( legendcanvas )
+		var legendheight = legendcanvas.height;
+	else
+		var legendheight = 500;
+
 	var y;
 	for (var i=0; i< LALOLibPlots[LALOLibPlotsIndex].cmap.length;i++) {
-		y = Math.floor(i * legend.height / plot1.cmap.length);
+		y = Math.floor(i * legendheight / LALOLibPlots[LALOLibPlotsIndex].cmap.length);
 		ctx.fillStyle = "rgb(" + LALOLibPlots[LALOLibPlotsIndex].cmap[i][0] + "," + LALOLibPlots[LALOLibPlotsIndex].cmap[i][1] + "," + LALOLibPlots[LALOLibPlotsIndex].cmap[i][2] + ")";
-		ctx.fillRect( 0, legend.height-y, legendwidth , (legend.height / LALOLibPlots[LALOLibPlotsIndex].cmap.length) + 1) ;
+		ctx.fillRect( 0, legendheight-y, legendwidth , (legendheight / LALOLibPlots[LALOLibPlotsIndex].cmap.length) + 1) ;
 	}	
 	
+	document.getElementById("legendmaxZ" + LALOLibPlotsIndex).innerHTML = plotinfo.maxZ.toPrecision(3);
+	document.getElementById("legendminZ" + LALOLibPlotsIndex).innerHTML = plotinfo.minZ.toPrecision(3);
 		
 	if(window.addEventListener)
-        plotcanvas.addEventListener('DOMMouseScroll', this.mousezoom, false);//firefox
+        document.getElementById(plotid).addEventListener('DOMMouseScroll', this.mousezoom, false);//firefox
  
     //for IE/OPERA etc
-    plotcanvas.onmousewheel = this.mousezoom;
+    document.getElementById(plotid).onmousewheel = this.mousezoom;
 	
 	LALOLibPlotsIndex++;
 }
