@@ -25,10 +25,10 @@ Ready-to-use versions of the tools are available online at:
 
 or as modules (see the [documentation](http://mlweb.loria.fr/lalolab/lalolib.html) for details) at:
 
-- [http://mlweb.loria.fr/lalolib-module.js](http://mlweb.loria.fr/lalolib-module.js)
-- [http://mlweb.loria.fr/mljs-module.js](http://mlweb.loria.fr/mljs-module.js)
-- [http://mlweb.loria.fr/lalolib-noglpk-module.js](http://mlweb.loria.fr/lalolib-noglpk-module.js)
-- [http://mlweb.loria.fr/mljs-noglpk-module.js](http://mlweb.loria.fr/mljs-noglpk-module.js)
+- [http://mlweb.loria.fr/lalolib-module.min.js](http://mlweb.loria.fr/lalolib-module.min.js)
+- [http://mlweb.loria.fr/mljs-module.min.js](http://mlweb.loria.fr/mljs-module.min.js)
+- [http://mlweb.loria.fr/lalolib-noglpk-module.min.js](http://mlweb.loria.fr/lalolib-noglpk-module.min.js)
+- [http://mlweb.loria.fr/mljs-noglpk-module.min.js](http://mlweb.loria.fr/mljs-noglpk-module.min.js)
 
 ## Functions provided by LALOLib
 
