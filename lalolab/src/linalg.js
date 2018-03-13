@@ -6934,7 +6934,7 @@ should return [ 817.7597, 2.4750, 0.0030]
 	var k;
 
 	const TOL = 1e-11;
-	
+	var iter = 0;
 	do {
 		
 		for ( i=0; i<n-1; i++) {
@@ -6943,57 +6943,50 @@ should return [ 817.7597, 2.4750, 0.0030]
 			}
 		}
 
-		// find largest q such that B[n-p-q:n][n-p-q:n] is diagonal: 
-		if ( ( Math.abs( B.val[(n-1)*B.n + n-2] ) > TOL ) || (Math.abs(B.val[(n-2)*B.n + n-1]) > TOL ) ) {
-			q = 0;
+		// find largest q such that B[n-q+1:n][n-q+1:n] is diagonal (in matlab notation): 
+		q = 0;		
+		while ( q < n && Math.abs( B.val[(n-q-1)*B.n + n-q-2] ) < TOL && Math.abs( B.val[(n-q-2)*B.n + n-q-1] ) < TOL ) {
+			q++;	
 		}
-		else {
-			q = 1;		
-			while ( q < n-1 && Math.abs( B.val[(n-q-1)*B.n + n-q-2] ) < TOL && Math.abs( B.val[(n-q-2)*B.n + n-q-1] ) < TOL ) {
-				q++;	
-			}
-			if ( q >= n-1 ) 
-				q = n;			
-		}
+		if ( q == n-1 )
+			q = n;
 				
-		// find smallest p such that B[p:q][p:q] has no zeros on superdiag
-		p=n-q-1;
-		while ( p > 0 && ! isZero ( B.val[(p-1)*B.n + p] ) )
-			p--;
-			
+		// find smallest p such that B[p+1:n-q][p+1:n-q] has no zeros on superdiag (in matlab notation):
+		p=0;	// size of B11 = first index of B22 in our notation
+		while ( p < n-q && Math.abs( B.val[p*B.n + p+1] ) < TOL * ( Math.abs(B.val[p*B.n + p]) + Math.abs(B.val[(p+1) * B.n + (p+1)]) )  ) {
+			p++;
+		}
+		
 		if ( q < n ) {
 			var DiagonalofB22isZero = -1;
-			for ( k=p; k< n-q-1 ; k++) {
+			for ( k=p; k< n-q ; k++) {
 				if ( Math.abs(  B.val[k*B.n + k] ) < TOL ) {
 					DiagonalofB22isZero = k;
 					break; 
 				}
 			}
 			if ( DiagonalofB22isZero >= 0 ) {
-				
-				if ( DiagonalofB22isZero < n-q-1 ) {		
+				if ( DiagonalofB22isZero < n-q-1 ) {
 					// Zero B(k,k+1) and entire row k...
-		      		for (j=DiagonalofB22isZero+1; j < n; j++) {	
+			  		for (k=DiagonalofB22isZero+1; k < n; k++) {	
 
-						cs = givens(- B.val[j*B.n + j] , B.val[DiagonalofB22isZero * B.n + j] );
-						premulGivens(cs[0],cs[1], DiagonalofB22isZero, j, B);
+						cs = givens( B.val[k*B.n + k] , B.val[DiagonalofB22isZero * B.n + k] );
+						premulGivens(cs[0],cs[1], k,DiagonalofB22isZero, B);
 						if ( computeU ) 
-							premulGivens(cs[0],cs[1], DiagonalofB22isZero, j, U);								
+							premulGivens(cs[0],cs[1], k, DiagonalofB22isZero, U);		
 					}
 				}
-				else {	
-					// Zero B(k-1,k) and entire row k...
-		      		for (j=DiagonalofB22isZero - 1; j >= p; j--) {
+				else {
+					// Zero B(k-1,k) and entire column k...
+		      		for (k=n-q-2; k >= p; k--) {
 						 
-						cs = givens(B.val[j*B.n * j] , B.val[j*B.n + n-q-1] );
-						postmulGivens(cs[0],cs[1], j, n-q-1, B);
+						cs = givens(B.val[k*B.n * k] , B.val[k*B.n + n-q-1] );
+						postmulGivens(cs[0],cs[1], k, n-q-1, B);
 						if ( computeV ) 
-							premulGivens(cs[0],cs[1], j, n-q-1, Vt);
+							premulGivens(cs[0],cs[1], k, n-q-1, Vt);
 //							postmulGivens(cs[0],cs[1], j, n-q-1, V);
-		
 					}
 				}
-				
 			}
 			else {
 				//B22 = get ( B, range(p , n - q ) , range (p , n-q ) );	
@@ -7017,7 +7010,7 @@ should return [ 817.7597, 2.4750, 0.0030]
 				//set ( B , range(p , n - q ) , range (p , n-q ), B22  );			
 			}		
 		}
-	} while ( q < n ) ;
+	} while ( q < n) ;
 
 	if (computeUV ) {
 	
