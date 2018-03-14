@@ -6980,7 +6980,7 @@ should return [ 817.7597, 2.4750, 0.0030]
 					// Zero B(k-1,k) and entire column k...
 		      		for (k=n-q-2; k >= p; k--) {
 						 
-						cs = givens(B.val[k*B.n * k] , B.val[k*B.n + n-q-1] );
+						cs = givens(B.val[k*B.n + k] , B.val[k*B.n + n-q-1] );
 						postmulGivens(cs[0],cs[1], k, n-q-1, B);
 						if ( computeV ) 
 							premulGivens(cs[0],cs[1], k, n-q-1, Vt);
@@ -6990,7 +6990,7 @@ should return [ 817.7597, 2.4750, 0.0030]
 			}
 			else {
 				//B22 = get ( B, range(p , n - q ) , range (p , n-q ) );	
-				
+
 				if ( computeUV ) {
 					// UBV = GolubKahanSVDstep( B22, true ) ;
 					// set ( U, range(p,n-q), [], mul(UBV.U, get(U, range(p,n-q), []) ) );
@@ -7010,6 +7010,7 @@ should return [ 817.7597, 2.4750, 0.0030]
 				//set ( B , range(p , n - q ) , range (p , n-q ), B22  );			
 			}		
 		}
+		iter++;
 	} while ( q < n) ;
 
 	if (computeUV ) {
