@@ -19,16 +19,16 @@ Documentation for LALOLib and ML.js is available [here](http://mlweb.loria.fr/la
 This repository is mostly intended for developers wishing to modify or extend these tools.
 Ready-to-use versions of the tools are available online at:
 
-- [http://mlweb.loria.fr/lalolib.js](http://mlweb.loria.fr/lalolib.js) for LALOLib
-- [http://mlweb.loria.fr/ml.js](http://mlweb.loria.fr/ml.js) for ML.js 
-- [http://mlweb.loria.fr/lalolab/](http://mlweb.loria.fr/lalolab/) for LALOLab
+- [https://mlweb.loria.fr/lalolib.js](http://mlweb.loria.fr/lalolib.js) for LALOLib
+- [https://mlweb.loria.fr/ml.js](http://mlweb.loria.fr/ml.js) for ML.js 
+- [https://mlweb.loria.fr/lalolab/](http://mlweb.loria.fr/lalolab/) for LALOLab
 
 or as modules (see the [documentation](http://mlweb.loria.fr/lalolab/lalolib.html) for details) at:
 
-- [http://mlweb.loria.fr/lalolib-module.min.js](http://mlweb.loria.fr/lalolib-module.min.js)
-- [http://mlweb.loria.fr/mljs-module.min.js](http://mlweb.loria.fr/mljs-module.min.js)
-- [http://mlweb.loria.fr/lalolib-noglpk-module.min.js](http://mlweb.loria.fr/lalolib-noglpk-module.min.js)
-- [http://mlweb.loria.fr/mljs-noglpk-module.min.js](http://mlweb.loria.fr/mljs-noglpk-module.min.js)
+- [https://mlweb.loria.fr/lalolib-module.min.js](http://mlweb.loria.fr/lalolib-module.min.js)
+- [https://mlweb.loria.fr/mljs-module.min.js](http://mlweb.loria.fr/mljs-module.min.js)
+- [https://mlweb.loria.fr/lalolib-noglpk-module.min.js](http://mlweb.loria.fr/lalolib-noglpk-module.min.js)
+- [https://mlweb.loria.fr/mljs-noglpk-module.min.js](http://mlweb.loria.fr/mljs-noglpk-module.min.js)
 
 ## Functions provided by LALOLib
 
