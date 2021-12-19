@@ -398,4 +398,4 @@ return {
 	bfgs: bfgs
 	
 }
-})();
+}));
